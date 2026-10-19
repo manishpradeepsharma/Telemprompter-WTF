@@ -93,13 +93,25 @@ function seedDefaultAdmin() {
         WHERE id = ?
       `,
       ).run(hash, existing.id);
-      console.log(`[Admin Seed] Synchronized default administrator '${existing.name || adminUser}'`);
+      console.log(
+        `[Admin Seed] Synchronized default administrator '${existing.name || adminUser}'`,
+      );
     }
   } catch (err) {
     console.error('[Admin Seed] Error synchronizing default admin account:', err);
   }
 }
 seedDefaultAdmin();
+
+// Organization sharing: ensure all folders and scripts are shared across the company
+try {
+  db.exec(`
+    UPDATE folders SET is_shared = 1 WHERE is_shared = 0;
+    UPDATE scripts SET is_shared = 1 WHERE is_shared = 0;
+  `);
+} catch (err) {
+  console.error('Error synchronizing organization shared items:', err);
+}
 
 function isDockerOrBridgeIp(ip) {
   if (!ip) return false;
@@ -482,36 +494,20 @@ app.delete('/api/admin/users/:id', (req, res) => {
 
 // ---------------- FOLDER ROUTES ----------------
 
-// Get folders (shared folders + user's own folders)
-app.get('/api/folders', (req, res) => {
+// Get folders (all folders in company organization)
+app.get('/api/folders', (_req, res) => {
   try {
-    const user = getCurrentUser(req);
-    const sharedFolders = db
+    const folders = db
       .prepare(
         `
       SELECT id, name, parent_id, created_by, is_shared, created_at
       FROM folders
-      WHERE is_shared = 1
       ORDER BY name ASC
     `,
       )
       .all();
 
-    let myFolders = [];
-    if (user) {
-      myFolders = db
-        .prepare(
-          `
-        SELECT id, name, parent_id, created_by, is_shared, created_at
-        FROM folders
-        WHERE created_by = ? AND is_shared = 0
-        ORDER BY name ASC
-      `,
-        )
-        .all(user.id);
-    }
-
-    return res.json({ sharedFolders, myFolders });
+    return res.json({ sharedFolders: folders, myFolders: [] });
   } catch (error) {
     console.error('Fetch folders error:', error);
     return res.status(500).json({ error: 'Failed to load folders' });
@@ -525,13 +521,13 @@ app.post('/api/folders', (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Please log in to create folders' });
     }
-    const { name, parent_id, is_shared } = req.body;
+    const { name, parent_id } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Folder name is required' });
     }
 
     const folderId = randomBytes(10).toString('hex');
-    const shared = user.role === 'admin' && Boolean(is_shared) ? 1 : 0;
+    const shared = 1; // All folders in company organization are shared
     const parentId = parent_id && parent_id.trim() ? parent_id.trim() : null;
     const now = new Date().toISOString();
 
@@ -560,15 +556,11 @@ app.post('/api/folders', (req, res) => {
 app.put('/api/folders/:id', (req, res) => {
   try {
     const user = getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!user) return res.status(401).json({ error: 'Please log in to update folders' });
 
     const { id } = req.params;
     const folder = db.prepare('SELECT * FROM folders WHERE id = ?').get(id);
     if (!folder) return res.status(404).json({ error: 'Folder not found' });
-
-    if (user.role !== 'admin' && folder.created_by !== user.id) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
 
     const { name, parent_id } = req.body;
     const newName = name !== undefined ? name.trim() : folder.name;
@@ -607,15 +599,11 @@ app.put('/api/folders/:id', (req, res) => {
 app.delete('/api/folders/:id', (req, res) => {
   try {
     const user = getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!user) return res.status(401).json({ error: 'Please log in to delete folders' });
 
     const { id } = req.params;
     const folder = db.prepare('SELECT * FROM folders WHERE id = ?').get(id);
     if (!folder) return res.status(404).json({ error: 'Folder not found' });
-
-    if (user.role !== 'admin' && folder.created_by !== user.id) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
 
     // Unassign scripts in this folder (keep scripts, remove folder association)
     db.prepare('UPDATE scripts SET folder_id = NULL WHERE folder_id = ?').run(id);
@@ -635,37 +623,20 @@ app.delete('/api/folders/:id', (req, res) => {
 
 // ---------------- SCRIPT ROUTES ----------------
 
-// Get scripts (shared scripts + user's own scripts)
-app.get('/api/scripts', (req, res) => {
+// Get scripts (all scripts in company organization)
+app.get('/api/scripts', (_req, res) => {
   try {
-    const user = getCurrentUser(req);
-    // Shared scripts (uploaded by admin to share with recording users)
-    const sharedScripts = db
+    const scripts = db
       .prepare(
         `
       SELECT id, title, content, created_by, creator_name, is_shared, folder_id, created_at, updated_at
       FROM scripts
-      WHERE is_shared = 1
       ORDER BY updated_at DESC
     `,
       )
       .all();
 
-    let myScripts = [];
-    if (user) {
-      myScripts = db
-        .prepare(
-          `
-        SELECT id, title, content, created_by, creator_name, is_shared, folder_id, created_at, updated_at
-        FROM scripts
-        WHERE created_by = ?
-        ORDER BY updated_at DESC
-      `,
-        )
-        .all(user.id);
-    }
-
-    return res.json({ sharedScripts, myScripts });
+    return res.json({ sharedScripts: scripts, myScripts: [] });
   } catch (error) {
     console.error('Fetch scripts error:', error);
     return res.status(500).json({ error: 'Failed to load scripts' });
@@ -679,13 +650,12 @@ app.post('/api/scripts', (req, res) => {
     if (!user) {
       return res.status(401).json({ error: 'Please log in to save scripts' });
     }
-    const { title, content, is_shared, folder_id } = req.body;
+    const { title, content, folder_id } = req.body;
     if (!title || !content) {
       return res.status(400).json({ error: 'Script title and content are required' });
     }
 
-    // Only admin can mark scripts as shared
-    const shared = user.role === 'admin' && Boolean(is_shared) ? 1 : 0;
+    const shared = 1; // All scripts in company organization are shared
     const folderId = folder_id && folder_id.trim() ? folder_id.trim() : null;
     const scriptId = randomBytes(10).toString('hex');
     const now = new Date().toISOString();
@@ -718,19 +688,13 @@ app.post('/api/scripts', (req, res) => {
 app.put('/api/scripts/:id', (req, res) => {
   try {
     const user = getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!user) return res.status(401).json({ error: 'Please log in to update scripts' });
 
     const { id } = req.params;
     const script = db.prepare('SELECT * FROM scripts WHERE id = ?').get(id);
     if (!script) return res.status(404).json({ error: 'Script not found' });
 
-    if (user.role !== 'admin' && script.created_by !== user.id) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
-
-    const { title, content, is_shared, folder_id } = req.body;
-    const shared =
-      user.role === 'admin' && is_shared !== undefined ? (is_shared ? 1 : 0) : script.is_shared;
+    const { title, content, folder_id } = req.body;
     const folderId =
       folder_id !== undefined
         ? folder_id && folder_id.trim()
@@ -742,13 +706,12 @@ app.put('/api/scripts/:id', (req, res) => {
     db.prepare(
       `
       UPDATE scripts
-      SET title = ?, content = ?, is_shared = ?, folder_id = ?, updated_at = ?
+      SET title = ?, content = ?, is_shared = 1, folder_id = ?, updated_at = ?
       WHERE id = ?
     `,
     ).run(
       title ? title.trim() : script.title,
       content ? content.trim() : script.content,
-      shared,
       folderId,
       now,
       id,
@@ -765,7 +728,7 @@ app.put('/api/scripts/:id', (req, res) => {
 app.post('/api/scripts/move-batch', (req, res) => {
   try {
     const user = getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!user) return res.status(401).json({ error: 'Please log in to move scripts' });
 
     const { script_ids, folder_id } = req.body;
     if (!Array.isArray(script_ids) || script_ids.length === 0) {
@@ -776,19 +739,11 @@ app.post('/api/scripts/move-batch', (req, res) => {
     const now = new Date().toISOString();
 
     let updatedCount = 0;
-    const stmtAdmin = db.prepare('UPDATE scripts SET folder_id = ?, updated_at = ? WHERE id = ?');
-    const stmtUser = db.prepare(
-      'UPDATE scripts SET folder_id = ?, updated_at = ? WHERE id = ? AND created_by = ?',
-    );
+    const stmt = db.prepare('UPDATE scripts SET folder_id = ?, updated_at = ? WHERE id = ?');
 
     for (const sid of script_ids) {
-      if (user.role === 'admin') {
-        stmtAdmin.run(targetFolderId, now, sid);
-        updatedCount++;
-      } else {
-        const result = stmtUser.run(targetFolderId, now, sid, user.id);
-        if (result.changes > 0) updatedCount++;
-      }
+      const result = stmt.run(targetFolderId, now, sid);
+      if (result.changes > 0) updatedCount++;
     }
 
     return res.json({ ok: true, count: updatedCount });
@@ -802,15 +757,11 @@ app.post('/api/scripts/move-batch', (req, res) => {
 app.delete('/api/scripts/:id', (req, res) => {
   try {
     const user = getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    if (!user) return res.status(401).json({ error: 'Please log in to delete scripts' });
 
     const { id } = req.params;
     const script = db.prepare('SELECT * FROM scripts WHERE id = ?').get(id);
     if (!script) return res.status(404).json({ error: 'Script not found' });
-
-    if (user.role !== 'admin' && script.created_by !== user.id) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
 
     db.prepare('DELETE FROM scripts WHERE id = ?').run(id);
     return res.json({ ok: true });

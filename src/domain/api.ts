@@ -188,12 +188,16 @@ export const api = {
     }
   },
 
-  async deleteFolder(id: string): Promise<boolean> {
+  async deleteFolder(id: string): Promise<{ ok: boolean; error?: string }> {
     try {
       const res = await fetch(`/api/folders/${id}`, { method: 'DELETE', credentials: 'include' });
-      return res.ok;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { ok: false, error: data.error || 'Failed to delete folder' };
+      }
+      return { ok: true };
     } catch {
-      return false;
+      return { ok: false, error: 'Network error or server unavailable' };
     }
   },
 
@@ -273,12 +277,16 @@ export const api = {
     }
   },
 
-  async deleteScript(id: string): Promise<boolean> {
+  async deleteScript(id: string): Promise<{ ok: boolean; error?: string }> {
     try {
       const res = await fetch(`/api/scripts/${id}`, { method: 'DELETE', credentials: 'include' });
-      return res.ok;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return { ok: false, error: data.error || 'Failed to delete script' };
+      }
+      return { ok: true };
     } catch {
-      return false;
+      return { ok: false, error: 'Network error or server unavailable' };
     }
   },
 

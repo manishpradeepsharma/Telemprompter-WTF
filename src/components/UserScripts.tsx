@@ -21,8 +21,8 @@ export default function UserScripts(): preact.JSX.Element {
     <div class="user-scripts-container user-scripts-container--dense">
       {!user && (
         <div class="admin-alert admin-alert--warning admin-alert--compact">
-          💡 Browsing shared library as guest. <a href="/login">Log in</a> to create your own
-          folders and save personal scripts.
+          💡 Browsing organization library as guest. <a href="/login">Log in</a> to create, edit, or
+          organize scripts and folders.
         </div>
       )}
 

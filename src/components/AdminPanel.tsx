@@ -104,9 +104,7 @@ export default function AdminPanel(): preact.JSX.Element {
       return;
     }
 
-    setUsers((prev) =>
-      prev.map((u) => (u.id === targetUser.id ? { ...u, role: newRole } : u)),
-    );
+    setUsers((prev) => prev.map((u) => (u.id === targetUser.id ? { ...u, role: newRole } : u)));
     setActionSuccess(`Updated role for ${targetUser.name} to ${newRole.toUpperCase()}.`);
     setTimeout(() => setActionSuccess(''), 3000);
   };
@@ -383,11 +381,7 @@ export default function AdminPanel(): preact.JSX.Element {
       {tab === 'users' && (
         <div class="admin-section">
           {actionError && (
-            <div
-              class="auth-alert auth-alert--error"
-              style={{ marginBottom: '1rem' }}
-              role="alert"
-            >
+            <div class="auth-alert auth-alert--error" style={{ marginBottom: '1rem' }} role="alert">
               {actionError}
             </div>
           )}
@@ -533,7 +527,10 @@ export default function AdminPanel(): preact.JSX.Element {
                                 class="admin-danger-btn"
                                 disabled={isSelf}
                                 title={isSelf ? 'Cannot delete yourself' : 'Delete user'}
-                                style={{ opacity: isSelf ? 0.4 : 1, cursor: isSelf ? 'not-allowed' : 'pointer' }}
+                                style={{
+                                  opacity: isSelf ? 0.4 : 1,
+                                  cursor: isSelf ? 'not-allowed' : 'pointer',
+                                }}
                                 onClick={() => !isSelf && handleDeleteUser(u)}
                               >
                                 Delete

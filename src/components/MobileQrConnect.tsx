@@ -40,7 +40,8 @@ export default function MobileQrConnect(): preact.JSX.Element {
   };
 
   useEffect(() => {
-    const savedIp = typeof window !== 'undefined' ? localStorage.getItem('tp_lan_ip_override') : null;
+    const savedIp =
+      typeof window !== 'undefined' ? localStorage.getItem('tp_lan_ip_override') : null;
     if (savedIp) {
       setCustomIp(savedIp);
       setHasCustomIp(true);
@@ -85,7 +86,10 @@ export default function MobileQrConnect(): preact.JSX.Element {
       } catch {
         const host = window.location.hostname;
         finalIp =
-          savedIp || (host !== 'localhost' && host !== '127.0.0.1' && !isDockerBridge(host) ? host : '192.168.1.5');
+          savedIp ||
+          (host !== 'localhost' && host !== '127.0.0.1' && !isDockerBridge(host)
+            ? host
+            : '192.168.1.5');
       }
 
       setIsDockerWarning(isDocker && !savedIp && isDockerBridge(finalIp));
@@ -162,9 +166,10 @@ export default function MobileQrConnect(): preact.JSX.Element {
         <div class="mobile-qr-notice mobile-qr-notice--warning">
           <span class="mobile-qr-notice__icon">⚠️</span>
           <div class="mobile-qr-notice__text">
-            <strong>Docker internal IP ({detectedDockerIp}) detected:</strong> Mobile devices cannot connect to
-            Docker's internal bridge network. Run <code>ipconfig</code> in Windows PowerShell / Command Prompt, find your
-            Wi-Fi IPv4 address (e.g. <code>192.168.1.X</code>), and set it below.
+            <strong>Docker internal IP ({detectedDockerIp}) detected:</strong> Mobile devices cannot
+            connect to Docker's internal bridge network. Run <code>ipconfig</code> in Windows
+            PowerShell / Command Prompt, find your Wi-Fi IPv4 address (e.g. <code>192.168.1.X</code>
+            ), and set it below.
           </div>
         </div>
       )}
@@ -241,13 +246,15 @@ export default function MobileQrConnect(): preact.JSX.Element {
         <div class="mobile-qr-step">
           <span class="mobile-qr-step-num">3</span>
           <span>
-            If iOS Safari warns <strong>"This Connection Is Not Private"</strong>, tap <strong>Show Details</strong> →{' '}
-            <strong>visit this website</strong>.
+            If iOS Safari warns <strong>"This Connection Is Not Private"</strong>, tap{' '}
+            <strong>Show Details</strong> → <strong>visit this website</strong>.
           </span>
         </div>
         <div class="mobile-qr-step">
           <span class="mobile-qr-step-num">4</span>
-          <span>Tap <strong>Allow</strong> when prompted for Camera permissions!</span>
+          <span>
+            Tap <strong>Allow</strong> when prompted for Camera permissions!
+          </span>
         </div>
       </div>
     </div>

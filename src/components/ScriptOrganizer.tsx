@@ -210,32 +210,21 @@ export default function ScriptOrganizer({
     }, 4000);
   };
 
-  // Combine relevant scripts according to mode
+  // Combine all company scripts
   const allAvailableScripts = useMemo(() => {
-    if (mode === 'admin') {
-      return sharedScripts;
-    }
-    // In user mode: combine my scripts and shared scripts
     const map = new Map<string, ScriptItem>();
+    sharedScripts.forEach((s) => map.set(s.id, s));
     myScripts.forEach((s) => map.set(s.id, s));
-    sharedScripts.forEach((s) => {
-      if (!map.has(s.id)) map.set(s.id, s);
-    });
     return Array.from(map.values());
-  }, [mode, sharedScripts, myScripts]);
+  }, [sharedScripts, myScripts]);
 
-  // Combine relevant folders
+  // Combine all company folders
   const allAvailableFolders = useMemo(() => {
-    if (mode === 'admin') {
-      return sharedFolders;
-    }
     const map = new Map<string, FolderItem>();
+    sharedFolders.forEach((f) => map.set(f.id, f));
     myFolders.forEach((f) => map.set(f.id, f));
-    sharedFolders.forEach((f) => {
-      if (!map.has(f.id)) map.set(f.id, f);
-    });
     return Array.from(map.values());
-  }, [mode, sharedFolders, myFolders]);
+  }, [sharedFolders, myFolders]);
 
   // Folder lookup map
   const folderMap = useMemo(() => {
@@ -370,6 +359,11 @@ export default function ScriptOrganizer({
 
   // Folder actions
   const handleOpenCreateFolder = (parentId: string | null = null) => {
+    if (!user) {
+      showToast('error', 'Please log in to create folders');
+      window.location.href = '/login';
+      return;
+    }
     setEditingFolderId(null);
     setFolderModalParentId(parentId);
     setFolderModalName('');
@@ -377,6 +371,11 @@ export default function ScriptOrganizer({
   };
 
   const handleOpenRenameFolder = (folder: FolderItem) => {
+    if (!user) {
+      showToast('error', 'Please log in to rename folders');
+      window.location.href = '/login';
+      return;
+    }
     setEditingFolderId(folder.id);
     setFolderModalParentId(folder.parent_id);
     setFolderModalName(folder.name);
@@ -403,11 +402,14 @@ export default function ScriptOrganizer({
       const res = await api.createFolder({
         name: folderModalName.trim(),
         parent_id: folderModalParentId,
-        is_shared: mode === 'admin',
       });
       if (res.folder) {
         showToast('success', `Folder "${res.folder.name}" created`);
         setShowFolderModal(false);
+        // Automatically ensure parent is expanded so the newly created folder is visible
+        if (folderModalParentId) {
+          setCollapsedFolders((prev) => ({ ...prev, [folderModalParentId]: false }));
+        }
         // Automatically select newly created folder
         setSelectedFolderId(res.folder.id);
         loadAll();
@@ -418,6 +420,11 @@ export default function ScriptOrganizer({
   };
 
   const handleDeleteFolder = async (folder: FolderItem) => {
+    if (!user) {
+      showToast('error', 'Please log in to delete folders');
+      window.location.href = '/login';
+      return;
+    }
     if (
       !confirm(
         `Are you sure you want to delete folder "${folder.name}"?\nAny scripts inside will be moved to Uncategorized so you don't lose them.`,
@@ -425,15 +432,15 @@ export default function ScriptOrganizer({
     )
       return;
 
-    const ok = await api.deleteFolder(folder.id);
-    if (ok) {
+    const res = await api.deleteFolder(folder.id);
+    if (res.ok) {
       showToast('success', `Folder "${folder.name}" deleted. Scripts moved to Uncategorized.`);
       if (selectedFolderId === folder.id) {
         setSelectedFolderId('ALL');
       }
       loadAll();
     } else {
-      showToast('error', 'Failed to delete folder');
+      showToast('error', res.error || 'Failed to delete folder');
     }
   };
 
@@ -476,25 +483,44 @@ export default function ScriptOrganizer({
   };
 
   const handleBatchDelete = async () => {
+    if (!user) {
+      showToast('error', 'Please log in to delete scripts');
+      window.location.href = '/login';
+      return;
+    }
     if (selectedScriptIds.size === 0) return;
     if (!confirm(`Are you sure you want to delete ${selectedScriptIds.size} selected scripts?`))
       return;
 
     setBatchLoading(true);
     let deletedCount = 0;
+    let lastError = '';
     for (const id of Array.from(selectedScriptIds)) {
-      const ok = await api.deleteScript(id);
-      if (ok) deletedCount++;
+      const res = await api.deleteScript(id);
+      if (res.ok) {
+        deletedCount++;
+      } else if (res.error) {
+        lastError = res.error;
+      }
     }
     setBatchLoading(false);
 
-    showToast('success', `Deleted ${deletedCount} scripts.`);
-    setSelectedScriptIds(new Set());
-    loadAll();
+    if (deletedCount > 0) {
+      showToast('success', `Deleted ${deletedCount} script(s).`);
+      setSelectedScriptIds(new Set());
+      loadAll();
+    } else {
+      showToast('error', lastError || 'Failed to delete selected script(s)');
+    }
   };
 
   // Quick single move
   const handleSingleMove = async (scriptId: string, folderId: string) => {
+    if (!user) {
+      showToast('error', 'Please log in to organize scripts');
+      window.location.href = '/login';
+      return;
+    }
     const targetFolderId = folderId === 'UNCATEGORIZED' ? null : folderId;
     const res = await api.updateScript(scriptId, { folder_id: targetFolderId });
     if (res.ok) {
@@ -510,6 +536,11 @@ export default function ScriptOrganizer({
 
   // Script Modal (Create / Edit)
   const handleOpenCreateScript = () => {
+    if (!user) {
+      showToast('error', 'Please log in to write scripts');
+      window.location.href = '/login';
+      return;
+    }
     setScriptEditId(null);
     setScriptTitle('');
     setScriptContent('');
@@ -521,16 +552,21 @@ export default function ScriptOrganizer({
         ? selectedFolderId
         : '',
     );
-    setScriptIsShared(mode === 'admin');
+    setScriptIsShared(true);
     setShowScriptModal(true);
   };
 
   const handleOpenEditScript = (s: ScriptItem) => {
+    if (!user) {
+      showToast('error', 'Please log in to edit scripts');
+      window.location.href = '/login';
+      return;
+    }
     setScriptEditId(s.id);
     setScriptTitle(s.title);
     setScriptContent(s.content);
     setScriptFolderId(s.folder_id || '');
-    setScriptIsShared(s.is_shared === 1);
+    setScriptIsShared(true);
     setShowScriptModal(true);
   };
 
@@ -549,7 +585,7 @@ export default function ScriptOrganizer({
         title: scriptTitle.trim(),
         content: scriptContent.trim(),
         folder_id: targetFolderId,
-        is_shared: mode === 'admin' ? scriptIsShared : undefined,
+        is_shared: true,
       });
       setScriptSaving(false);
       if (res.ok) {
@@ -564,7 +600,7 @@ export default function ScriptOrganizer({
         title: scriptTitle.trim(),
         content: scriptContent.trim(),
         folder_id: targetFolderId,
-        is_shared: mode === 'admin' ? scriptIsShared : false,
+        is_shared: true,
       });
       setScriptSaving(false);
       if (res.script) {
@@ -578,13 +614,18 @@ export default function ScriptOrganizer({
   };
 
   const handleDeleteSingleScript = async (id: string, title: string) => {
+    if (!user) {
+      showToast('error', 'Please log in to delete scripts');
+      window.location.href = '/login';
+      return;
+    }
     if (!confirm(`Delete script "${title}"?`)) return;
-    const ok = await api.deleteScript(id);
-    if (ok) {
+    const res = await api.deleteScript(id);
+    if (res.ok) {
       showToast('success', 'Script deleted');
       loadAll();
     } else {
-      showToast('error', 'Failed to delete script');
+      showToast('error', res.error || 'Failed to delete script');
     }
   };
 

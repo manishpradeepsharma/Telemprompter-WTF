@@ -90,7 +90,7 @@ teleprompter-web   teleprompter-wtf-web   Up (healthy)              0.0.0.0:80->
     LAN_IP=192.168.1.50
     ```
     Then restart the stack with `docker compose down && docker compose up -d`.
-  - **iOS Safari SSL Warning**: When opening `https://<server-ip>:4323` on iPhone/iPad with a self-signed certificate, Safari displays *"This Connection Is Not Private"*. Tap **Show Details** at the bottom, then tap **"visit this website"** to proceed and allow camera permissions.
+  - **iOS Safari SSL Warning**: When opening `https://<server-ip>:4323` on iPhone/iPad with a self-signed certificate, Safari displays _"This Connection Is Not Private"_. Tap **Show Details** at the bottom, then tap **"visit this website"** to proceed and allow camera permissions.
 
 ### 4. Administrator Account & User Management
 
@@ -101,7 +101,9 @@ A default administrator account is automatically initialized on server startup:
 - **Password**: `TPrompt123`
 
 #### 👑 Admin Panel (`/admin`)
+
 Log in with the admin credentials above, then navigate to `/admin` (or click **Admin Panel** in the top navigation):
+
 - **Manage Users Tab**:
   - **View Accounts**: See all registered users, roles, and how many scripts and recordings each user owns.
   - **Change Roles**: Promote users to `Admin` or demote to `User` directly via dropdown.
@@ -173,12 +175,12 @@ docker compose up -d --build
 
 ## 🔍 Troubleshooting
 
-| Issue | Cause | Solution |
-| :--- | :--- | :--- |
-| **QR code shows `172.18.0.2` and iPhone cannot connect** | `172.18.0.2` is Docker's internal virtual bridge IP. Mobile devices on your Wi-Fi cannot route to Docker internal subnets. | Find your PC's Wi-Fi IP using `ipconfig` (e.g. `192.168.1.50`). Enter it into the **Host IP** box on the web UI or set `LAN_IP=192.168.1.50` in `.env` and restart Docker. |
-| **iOS Safari says "This Connection Is Not Private"** | The local HTTPS gateway on port 4323 uses a self-signed development SSL certificate. | In iOS Safari, tap **Show Details** at the bottom of the error page, then tap **"visit this website"** to proceed. |
-| **Cannot reach server from another device (Timeout)** | Windows Firewall is blocking inbound connections on ports 4321/4323. | Run the firewall PowerShell rule provided above: `New-NetFirewallRule -DisplayName "Teleprompter Server" -Direction Inbound -LocalPort 80,4321,4322,4323 -Protocol TCP -Action Allow`. |
-| **Phone and PC cannot communicate** | Devices are on different networks, cellular data, or Wi-Fi AP Isolation is enabled. | Ensure phone and PC are on the same Wi-Fi SSID (disable mobile data while testing). Check router settings to ensure "AP Isolation" or "Guest Mode" is turned off. |
-| **Port 80 is already in use** | Windows IIS or Skype/system service is listening on port 80. | Edit `docker-compose.yml` under `teleprompter` ports from `'80:8080'` to `'8000:8080'`, or stop IIS using `iisreset /stop`. |
-| **Mobile camera permission blocked** | Non-localhost HTTP blocks camera access on iOS/Android. | Connect via `https://<server-ip>:4323` (port 4323 HTTPS Gateway) instead of HTTP. |
-| **Recordings upload fails** | File exceeds maximum body size. | Nginx is configured for `500M` max body size with unbuffered streaming; check available disk space on server. |
+| Issue                                                    | Cause                                                                                                                      | Solution                                                                                                                                                                               |
+| :------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **QR code shows `172.18.0.2` and iPhone cannot connect** | `172.18.0.2` is Docker's internal virtual bridge IP. Mobile devices on your Wi-Fi cannot route to Docker internal subnets. | Find your PC's Wi-Fi IP using `ipconfig` (e.g. `192.168.1.50`). Enter it into the **Host IP** box on the web UI or set `LAN_IP=192.168.1.50` in `.env` and restart Docker.             |
+| **iOS Safari says "This Connection Is Not Private"**     | The local HTTPS gateway on port 4323 uses a self-signed development SSL certificate.                                       | In iOS Safari, tap **Show Details** at the bottom of the error page, then tap **"visit this website"** to proceed.                                                                     |
+| **Cannot reach server from another device (Timeout)**    | Windows Firewall is blocking inbound connections on ports 4321/4323.                                                       | Run the firewall PowerShell rule provided above: `New-NetFirewallRule -DisplayName "Teleprompter Server" -Direction Inbound -LocalPort 80,4321,4322,4323 -Protocol TCP -Action Allow`. |
+| **Phone and PC cannot communicate**                      | Devices are on different networks, cellular data, or Wi-Fi AP Isolation is enabled.                                        | Ensure phone and PC are on the same Wi-Fi SSID (disable mobile data while testing). Check router settings to ensure "AP Isolation" or "Guest Mode" is turned off.                      |
+| **Port 80 is already in use**                            | Windows IIS or Skype/system service is listening on port 80.                                                               | Edit `docker-compose.yml` under `teleprompter` ports from `'80:8080'` to `'8000:8080'`, or stop IIS using `iisreset /stop`.                                                            |
+| **Mobile camera permission blocked**                     | Non-localhost HTTP blocks camera access on iOS/Android.                                                                    | Connect via `https://<server-ip>:4323` (port 4323 HTTPS Gateway) instead of HTTP.                                                                                                      |
+| **Recordings upload fails**                              | File exceeds maximum body size.                                                                                            | Nginx is configured for `500M` max body size with unbuffered streaming; check available disk space on server.                                                                          |
