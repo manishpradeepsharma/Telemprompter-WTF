@@ -697,9 +697,42 @@ button {
   cursor: default;
 }
 
+.presenter__camera-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.presenter__camera-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.presenter__camera-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.42) 0%, rgb(0 0 0 / 0.72) 100%);
+}
+
+.presenter--camera .presenter__script {
+  text-shadow:
+    0 2px 12px rgb(0 0 0 / 0.95),
+    0 0 28px rgb(0 0 0 / 0.85);
+}
+
+.presenter--camera .script-word {
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.9));
+}
+
 .presenter__scroll {
   position: absolute;
   inset: 0;
+  z-index: 2;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1022,6 +1055,50 @@ button {
 .control-button--primary:hover {
   border-color: var(--accent);
   background: var(--accent);
+}
+
+.control-button--recording {
+  border-color: #82493f;
+  color: #fff;
+  background: #2a1814;
+  gap: 0.55rem;
+  padding: 0.6rem 0.85rem;
+}
+
+.control-button--recording:hover {
+  border-color: #ff725d;
+  background: #351b17;
+}
+
+.recording-pulse-dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #ff5533;
+  box-shadow: 0 0 0 3px rgb(255 85 51 / 0.25);
+  animation: recording-dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes recording-dot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgb(255 85 51 / 0.25);
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+    box-shadow: 0 0 0 6px rgb(255 85 51 / 0.45);
+  }
+}
+
+.control-button--recording time {
+  color: #ffc4b9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .control-button kbd {
@@ -2459,8 +2536,42 @@ kbd {
   font-size: 0.7rem;
 }
 
+.record-modes label:has(input:checked) {
+  border-color: #ff8a72;
+  background: #231c19;
+}
+
 .record-mic {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.button--start-record {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  color: #fff;
+  background: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 14px rgb(228 73 46 / 0.35);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.button--start-record:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--accent-dark);
+  background: var(--accent-dark);
+  box-shadow: 0 6px 20px rgb(228 73 46 / 0.45);
 }
 
 .recording-live {

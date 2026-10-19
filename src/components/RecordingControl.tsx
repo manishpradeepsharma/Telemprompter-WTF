@@ -22,11 +22,17 @@ const formatTimer = (seconds: number): string => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 };
 
-export default function RecordingControl(): preact.JSX.Element | null {
+interface RecordingControlProps {
+  onCameraStreamChange?: (stream: MediaStream | null) => void;
+}
+
+export default function RecordingControl({
+  onCameraStreamChange,
+}: RecordingControlProps = {}): preact.JSX.Element | null {
   const capabilities = useRef(detectBrowserCapabilities()).current;
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<RecordingMode>('screen');
-  const [includeMic, setIncludeMic] = useState(false);
+  const [mode, setMode] = useState<RecordingMode>(capabilities.camera ? 'camera' : 'screen');
+  const [includeMic, setIncludeMic] = useState(true);
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -64,6 +70,7 @@ export default function RecordingControl(): preact.JSX.Element | null {
     timerRef.current = null;
     streamsRef.current.forEach((stream) => stream.getTracks().forEach((track) => track.stop()));
     streamsRef.current = [];
+    onCameraStreamChange?.(null);
   };
 
   const finish = () => {
@@ -139,7 +146,10 @@ export default function RecordingControl(): preact.JSX.Element | null {
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: selectedMimeType });
         chunksRef.current = [];
-        if (blob.size) setPreviewUrl(URL.createObjectURL(blob));
+        if (blob.size) {
+          setPreviewUrl(URL.createObjectURL(blob));
+          setOpen(true);
+        }
         setRecording(false);
         cleanupCapture();
         // Only a genuine stop (user or normal end of capture) counts as a completion;
@@ -160,6 +170,10 @@ export default function RecordingControl(): preact.JSX.Element | null {
       setSeconds(0);
       secondsRef.current = 0;
       setRecording(true);
+      setOpen(false);
+      if (mode === 'camera') {
+        onCameraStreamChange?.(primary);
+      }
       timerRef.current = setInterval(() => {
         secondsRef.current += 1;
         setSeconds(secondsRef.current);
@@ -196,13 +210,27 @@ export default function RecordingControl(): preact.JSX.Element | null {
     <>
       <button
         ref={triggerRef}
-        class="control-button"
+        class={`control-button ${recording ? 'control-button--recording' : ''}`}
         onClick={() => {
-          analytics.track('opened_recording_panel');
-          setOpen(true);
+          if (recording) {
+            finish();
+          } else {
+            analytics.track('opened_recording_panel');
+            setOpen(true);
+          }
         }}
+        aria-label={recording ? 'Stop and preview' : 'Record'}
+        title={recording ? 'Stop recording and preview' : 'Record'}
       >
-        {recording ? `Recording ${formatTimer(seconds)}` : 'Record'}
+        {recording ? (
+          <>
+            <span class="recording-pulse-dot" aria-hidden="true" />
+            <span>Stop and preview</span>
+            <time>{formatTimer(seconds)}</time>
+          </>
+        ) : (
+          'Record'
+        )}
       </button>
       {recording && (
         <button class="recording-stop" onClick={finish} aria-label="Stop recording">
@@ -272,7 +300,10 @@ export default function RecordingControl(): preact.JSX.Element | null {
                     onChange={(event) => setIncludeMic(event.currentTarget.checked)}
                   />
                 </label>
-                <button class="button button--primary" onClick={() => void start()}>
+                <button
+                  class="button button--primary button--start-record"
+                  onClick={() => void start()}
+                >
                   Start recording
                 </button>
               </>

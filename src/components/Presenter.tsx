@@ -83,6 +83,7 @@ export default function Presenter({
   const [fullscreen, setFullscreen] = useState(Boolean(document.fullscreenElement));
   const [voiceListening, setVoiceListening] = useState(false);
   const [speechActive, setSpeechActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   // The highlight is applied straight to the DOM rather than held in state. It changes at word
   // rate while the scroll updates every frame, and rendering it through Preact re-diffed every
   // word span in the script on each frame.
@@ -626,7 +627,7 @@ export default function Presenter({
   return (
     <section
       ref={presenterRef}
-      class={`presenter ${controlsVisible || !playing ? 'presenter--controls' : ''} ${voiceListening ? 'presenter--listening' : ''} ${speechActive ? 'presenter--speaking' : ''}`}
+      class={`presenter ${controlsVisible || !playing ? 'presenter--controls' : ''} ${voiceListening ? 'presenter--listening' : ''} ${speechActive ? 'presenter--speaking' : ''} ${cameraStream ? 'presenter--camera' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label="Teleprompter presenter"
@@ -635,6 +636,27 @@ export default function Presenter({
       onPointerMove={revealControls}
       onPointerDown={revealControls}
     >
+      {cameraStream && (
+        <div class="presenter__camera-backdrop" aria-hidden="true">
+          <video
+            ref={(element) => {
+              if (element && element.srcObject !== cameraStream) {
+                element.srcObject = cameraStream;
+                element.play().catch(() => {});
+              }
+            }}
+            class="presenter__camera-video"
+            style={{
+              transform: `scaleX(${preferences.mirror ? 1 : -1})`,
+            }}
+            autoPlay
+            playsInline
+            muted
+          />
+          <div class="presenter__camera-overlay" />
+        </div>
+      )}
+
       <div class="presenter__progress" aria-hidden="true">
         <span style={{ width: `${Math.round(progress * 100)}%` }} />
       </div>
@@ -772,7 +794,7 @@ export default function Presenter({
           onAlignment={applyAlignment}
           onVoiceActivity={handleVoiceActivity}
         />
-        <RecordingControl />
+        <RecordingControl onCameraStreamChange={setCameraStream} />
         <PictureInPictureControl
           script={displayScript}
           progress={progress}
