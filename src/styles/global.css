@@ -467,6 +467,30 @@ button {
   cursor: not-allowed;
 }
 
+.button--accent {
+  background: var(--accent, #e4492e);
+  border-color: var(--accent, #e4492e);
+  color: #ffffff;
+}
+
+.button--accent:hover:not(:disabled) {
+  background: var(--accent-dark, #b82e19);
+  border-color: var(--accent-dark, #b82e19);
+  color: #ffffff;
+}
+
+.button--secondary {
+  background: #ffffff;
+  border-color: var(--line, #d7cfc0);
+  color: var(--ink, #171713);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background: #f5f0e6;
+  border-color: var(--muted, #69675e);
+  color: var(--ink, #171713);
+}
+
 .button--start {
   min-width: min(100%, 240px);
 }
@@ -481,9 +505,112 @@ button {
 }
 
 .button--small {
-  min-height: 42px;
-  padding: 0.65rem 0.85rem;
+  min-height: 38px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.82rem;
+}
+
+/* Page Header Action Buttons - Standardized Size & Alignment */
+.scripts-page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.scripts-page-header__actions .button {
+  height: 40px;
+  min-height: 40px;
+  padding: 0 1rem;
   font-size: 0.86rem;
+  gap: 0.45rem;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+/* Unified Table & Card Action Buttons */
+.table-actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.table-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 120ms ease;
+  font-family: inherit;
+}
+
+.table-btn svg {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+}
+
+.table-btn--primary {
+  background: var(--ink, #171713);
+  color: #ffffff;
+  border: 1px solid var(--ink, #171713);
+}
+
+.table-btn--primary:hover {
+  background: var(--accent, #e4492e);
+  border-color: var(--accent, #e4492e);
+  color: #ffffff;
+}
+
+.table-btn--secondary {
+  background: #ffffff;
+  color: var(--ink, #171713);
+  border: 1px solid var(--line, #d7cfc0);
+}
+
+.table-btn--secondary:hover {
+  background: #f5f0e6;
+  border-color: #c4beaf;
+}
+
+.table-btn--accent {
+  background: var(--accent, #e4492e);
+  color: #ffffff;
+  border: 1px solid var(--accent, #e4492e);
+}
+
+.table-btn--accent:hover {
+  background: var(--accent-dark, #b82e19);
+  border-color: var(--accent-dark, #b82e19);
+}
+
+.table-btn--danger {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.table-btn--danger:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #b91c1c;
+}
+
+.table-btn--icon {
+  width: 30px;
+  min-width: 30px;
+  padding: 0;
 }
 
 .secondary-actions {

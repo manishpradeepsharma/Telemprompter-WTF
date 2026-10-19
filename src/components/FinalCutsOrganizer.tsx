@@ -1,6 +1,352 @@
 import { useEffect, useState, useMemo, useRef } from 'preact/hooks';
 import { api, type User, type FinalCutItem, type FolderItem, type ScriptItem } from '../domain/api';
 
+/* Professional SVG Icons */
+const PlusIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+
+const VideoCameraIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polygon points="23 7 16 12 23 17 23 7" />
+    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+  </svg>
+);
+
+const BookOpenIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+    <path d="M6 6h10" />
+    <path d="M6 10h10" />
+  </svg>
+);
+
+const FilmReelIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="2" y="2" width="20" height="20" rx="2.5" />
+    <line x1="7" y1="2" x2="7" y2="22" />
+    <line x1="17" y1="2" x2="17" y2="22" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <line x1="2" y1="7" x2="7" y2="7" />
+    <line x1="2" y1="17" x2="7" y2="17" />
+    <line x1="17" y1="17" x2="22" y2="17" />
+    <line x1="17" y1="7" x2="22" y2="7" />
+  </svg>
+);
+
+const FileDocumentIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+  </svg>
+);
+
+const FolderIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const SmartphoneIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="5" y="2" width="14" height="20" rx="2.5" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
+  </svg>
+);
+
+const MonitorPlayIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
+    <polygon points="10 8 15 10 10 12 10 8" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const LinkedInIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="2" y="2" width="20" height="20" rx="3" />
+    <line x1="8" y1="11" x2="8" y2="17" />
+    <circle cx="8" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+    <path d="M12 17v-3.5a2 2 0 0 1 4 0V17" />
+    <line x1="12" y1="11" x2="12" y2="17" />
+  </svg>
+);
+
+const MusicNoteIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M9 18V5l12-2v13" />
+    <circle cx="6" cy="18" r="3" />
+    <circle cx="18" cy="16" r="3" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const ListIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <line x1="8" y1="6" x2="21" y2="6" />
+    <line x1="8" y1="12" x2="21" y2="12" />
+    <line x1="8" y1="18" x2="21" y2="18" />
+    <circle cx="3.5" cy="6" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="3.5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="3.5" cy="18" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const GridIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+  </svg>
+);
+
+const PlayIcon = () => (
+  <svg
+    width="11"
+    height="11"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+    aria-hidden="true"
+  >
+    <polygon points="6 4 20 12 6 20 6 4" />
+  </svg>
+);
+
+const DownloadIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
+const MessageSquareIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const CopyIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+
+const SparkleIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M12 2l2.4 7.4L22 12l-7.6 2.6L12 22l-2.4-7.4L2 12l7.6-2.6z" />
+  </svg>
+);
+
 export default function FinalCutsOrganizer(): preact.JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -212,15 +558,15 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
   const getPlatformLabel = (tag: string) => {
     switch (tag) {
       case 'reels':
-        return { label: 'Reels / Shorts (9:16)', badge: '📱 9:16' };
+        return { label: 'Reels / Shorts (9:16)', badge: '9:16 Vertical' };
       case 'youtube':
-        return { label: 'YouTube (16:9)', badge: '📺 16:9' };
+        return { label: 'YouTube (16:9)', badge: '16:9 Landscape' };
       case 'linkedin':
-        return { label: 'LinkedIn / Square (1:1)', badge: '💼 1:1' };
+        return { label: 'LinkedIn (1:1)', badge: '1:1 Square' };
       case 'tiktok':
-        return { label: 'TikTok (9:16)', badge: '🎵 9:16' };
+        return { label: 'TikTok (9:16)', badge: '9:16 TikTok' };
       default:
-        return { label: 'General / All Platforms', badge: '🎬 Social' };
+        return { label: 'General / Cross-Platform', badge: 'Deliverable' };
     }
   };
 
@@ -262,13 +608,16 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
         </div>
         <div class="scripts-page-header__actions">
           <button type="button" class="button button--accent" onClick={() => setIsUploadOpen(true)}>
-            <span>+</span> Upload Final Cut
+            <PlusIcon />
+            <span>Upload Final Cut</span>
           </button>
           <a href="/recordings" class="button button--secondary">
-            🎥 Raw Recordings
+            <VideoCameraIcon />
+            <span>Raw Recordings</span>
           </a>
           <a href="/scripts" class="button button--secondary">
-            📝 Script Library
+            <BookOpenIcon />
+            <span>Script Library</span>
           </a>
         </div>
       </header>
@@ -295,7 +644,8 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                 class="button button--primary"
                 title="Download video file for publishing"
               >
-                ⬇ Download Video
+                <DownloadIcon />
+                <span>Download Video</span>
               </a>
               <button
                 type="button"
@@ -305,7 +655,8 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                   alert('Video link copied to clipboard!');
                 }}
               >
-                📋 Copy Link
+                <CopyIcon />
+                <span>Copy Link</span>
               </button>
             </div>
           </div>
@@ -323,7 +674,9 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
           >
             <div class="organizer-modal__header">
               <div>
-                <span class="organizer-badge-folder">🚀 Post-Production</span>
+                <span class="organizer-badge-folder">
+                  <SparkleIcon /> Post-Production Deliverable
+                </span>
                 <h2>Upload Final Cut Video</h2>
               </div>
               <button
@@ -392,11 +745,11 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                     value={uploadPlatform}
                     onChange={(e) => setUploadPlatform(e.currentTarget.value)}
                   >
-                    <option value="reels">📱 Reels / Shorts (9:16)</option>
-                    <option value="youtube">📺 YouTube Full (16:9)</option>
-                    <option value="linkedin">💼 LinkedIn / Feed (1:1)</option>
-                    <option value="tiktok">🎵 TikTok (9:16)</option>
-                    <option value="all">🎬 General / Cross-Platform</option>
+                    <option value="reels">Reels / Shorts (9:16)</option>
+                    <option value="youtube">YouTube Full (16:9)</option>
+                    <option value="linkedin">LinkedIn / Feed (1:1)</option>
+                    <option value="tiktok">TikTok (9:16)</option>
+                    <option value="all">General / Cross-Platform</option>
                   </select>
                 </label>
               </div>
@@ -468,7 +821,9 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                 role="button"
                 tabIndex={0}
               >
-                <span class="tree-icon">🎬</span>
+                <span class="tree-icon">
+                  <FilmReelIcon />
+                </span>
                 <span class="tree-label">All Final Cuts</span>
                 <span class="tree-badge">{folderCounts.get('ALL') || 0}</span>
               </div>
@@ -479,7 +834,9 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                 role="button"
                 tabIndex={0}
               >
-                <span class="tree-icon">📄</span>
+                <span class="tree-icon">
+                  <FileDocumentIcon />
+                </span>
                 <span class="tree-label">Uncategorized</span>
                 <span class="tree-badge">{folderCounts.get('UNCATEGORIZED') || 0}</span>
               </div>
@@ -494,7 +851,9 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                     role="button"
                     tabIndex={0}
                   >
-                    <span class="tree-icon">📁</span>
+                    <span class="tree-icon">
+                      <FolderIcon />
+                    </span>
                     <span class="tree-label" title={f.name}>
                       {f.name}
                     </span>
@@ -506,22 +865,27 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
               <div class="tree-divider">SOCIAL PLATFORMS</div>
 
               {[
-                { id: 'reels', label: 'Reels / Shorts (9:16)', icon: '📱' },
-                { id: 'youtube', label: 'YouTube (16:9)', icon: '📺' },
-                { id: 'linkedin', label: 'LinkedIn (1:1)', icon: '💼' },
-                { id: 'tiktok', label: 'TikTok (9:16)', icon: '🎵' },
-              ].map((p) => (
-                <div
-                  key={p.id}
-                  class={`tree-item ${selectedPlatform === p.id ? 'tree-item--selected' : ''}`}
-                  onClick={() => setSelectedPlatform(selectedPlatform === p.id ? 'ALL' : p.id)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <span class="tree-icon">{p.icon}</span>
-                  <span class="tree-label">{p.label}</span>
-                </div>
-              ))}
+                { id: 'reels', label: 'Reels / Shorts (9:16)', Icon: SmartphoneIcon },
+                { id: 'youtube', label: 'YouTube (16:9)', Icon: MonitorPlayIcon },
+                { id: 'linkedin', label: 'LinkedIn (1:1)', Icon: LinkedInIcon },
+                { id: 'tiktok', label: 'TikTok (9:16)', Icon: MusicNoteIcon },
+              ].map((p) => {
+                const IconComponent = p.Icon;
+                return (
+                  <div
+                    key={p.id}
+                    class={`tree-item ${selectedPlatform === p.id ? 'tree-item--selected' : ''}`}
+                    onClick={() => setSelectedPlatform(selectedPlatform === p.id ? 'ALL' : p.id)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <span class="tree-icon">
+                      <IconComponent />
+                    </span>
+                    <span class="tree-label">{p.label}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </aside>
@@ -532,7 +896,7 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
           <div class="organizer-controls">
             <div class="organizer-search-box">
               <span class="search-icon" aria-hidden="true">
-                🔍
+                <SearchIcon />
               </span>
               <input
                 type="text"
@@ -580,7 +944,8 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                   onClick={() => handleSetViewLayout('list')}
                   title="List view"
                 >
-                  ☰ List
+                  <ListIcon />
+                  <span>List</span>
                 </button>
                 <button
                   type="button"
@@ -588,7 +953,8 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                   onClick={() => handleSetViewLayout('grid')}
                   title="Grid view"
                 >
-                  ▦ Grid
+                  <GridIcon />
+                  <span>Grid</span>
                 </button>
               </div>
             </div>
@@ -610,7 +976,8 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                 class="button button--primary"
                 onClick={() => setIsUploadOpen(true)}
               >
-                + Upload First Final Cut
+                <PlusIcon />
+                <span>Upload First Final Cut</span>
               </button>
             </div>
           ) : viewLayout === 'list' ? (
@@ -634,10 +1001,18 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                       <tr key={cut.id}>
                         <td class="td-title">
                           <strong title={cut.title}>{cut.title}</strong>
-                          {cut.notes && <div class="td-cut-notes">💬 {cut.notes}</div>}
+                          {cut.notes && (
+                            <div class="td-cut-notes">
+                              <MessageSquareIcon />
+                              <span>{cut.notes}</span>
+                            </div>
+                          )}
                           {cut.script_title && (
                             <div class="td-cut-script">
-                              📝 Script: <em>{cut.script_title}</em>
+                              <BookOpenIcon />
+                              <span>
+                                Script: <em>{cut.script_title}</em>
+                              </span>
                             </div>
                           )}
                         </td>
@@ -654,32 +1029,34 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                           <small style={{ color: 'var(--muted)' }}>by {cut.user_name}</small>
                         </td>
                         <td class="td-actions">
-                          <div class="table-actions-cell">
+                          <div class="table-actions-group">
                             <button
                               type="button"
-                              class="button button--primary button--small"
+                              class="table-btn table-btn--primary"
                               onClick={() =>
                                 setActiveVideo({ url: cut.filepath, title: cut.title })
                               }
                               title="Play Video Preview"
                             >
-                              ▶ Preview
+                              <PlayIcon />
+                              <span>Preview</span>
                             </button>
                             <a
                               href={cut.filepath}
                               download
-                              class="button button--secondary button--small"
+                              class="table-btn table-btn--secondary"
                               title="Download video file"
                             >
-                              ⬇ Save
+                              <DownloadIcon />
+                              <span>Save</span>
                             </a>
                             <button
                               type="button"
-                              class="btn-icon btn-icon--danger"
+                              class="table-btn table-btn--danger table-btn--icon"
                               onClick={() => handleDelete(cut.id)}
                               title="Delete final cut"
                             >
-                              🗑
+                              <TrashIcon />
                             </button>
                           </div>
                         </td>
@@ -701,7 +1078,9 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                     >
                       <video src={cut.filepath} preload="metadata" />
                       <div class="recording-card__play-overlay">
-                        <span>▶</span>
+                        <span>
+                          <PlayIcon />
+                        </span>
                       </div>
                       <span class="recording-card__duration">
                         {formatDuration(cut.duration_seconds)}
@@ -712,7 +1091,8 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                     <div class="recording-card__content">
                       <div class="recording-card__header">
                         <span class="recording-card__folder">
-                          📁 {cut.folder_name || 'Uncategorized'}
+                          <FolderIcon />
+                          <span>{cut.folder_name || 'Uncategorized'}</span>
                         </span>
                         <span class="recording-card__size">{formatFileSize(cut.filesize)}</span>
                       </div>
@@ -721,37 +1101,43 @@ export default function FinalCutsOrganizer(): preact.JSX.Element {
                         {cut.title}
                       </h3>
 
-                      {cut.notes && <p class="cut-card-notes">💬 {cut.notes}</p>}
+                      {cut.notes && (
+                        <p class="cut-card-notes">
+                          <MessageSquareIcon />
+                          <span>{cut.notes}</span>
+                        </p>
+                      )}
 
                       {cut.script_title && (
-                        <div class="cut-card-script-link">📝 Script: {cut.script_title}</div>
+                        <div class="cut-card-script-link">
+                          <BookOpenIcon />
+                          <span>Script: {cut.script_title}</span>
+                        </div>
                       )}
 
                       <div class="recording-card__footer" style={{ marginTop: '0.85rem' }}>
-                        <div class="recording-card__actions">
+                        <div class="table-actions-group">
                           <button
                             type="button"
-                            class="button button--primary button--small"
+                            class="table-btn table-btn--primary"
                             onClick={() => setActiveVideo({ url: cut.filepath, title: cut.title })}
                           >
-                            ▶ Preview
+                            <PlayIcon />
+                            <span>Preview</span>
                           </button>
-                          <a
-                            href={cut.filepath}
-                            download
-                            class="button button--secondary button--small"
-                          >
-                            ⬇ Save
+                          <a href={cut.filepath} download class="table-btn table-btn--secondary">
+                            <DownloadIcon />
+                            <span>Save</span>
                           </a>
+                          <button
+                            type="button"
+                            class="table-btn table-btn--danger table-btn--icon"
+                            onClick={() => handleDelete(cut.id)}
+                            title="Delete final cut"
+                          >
+                            <TrashIcon />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          class="btn-icon btn-icon--danger"
-                          onClick={() => handleDelete(cut.id)}
-                          title="Delete final cut"
-                        >
-                          🗑
-                        </button>
                       </div>
                     </div>
                   </div>

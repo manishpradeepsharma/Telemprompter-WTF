@@ -1,6 +1,189 @@
 import { useEffect, useState, useMemo } from 'preact/hooks';
 import { api, type User, type RecordingItem, type FolderItem } from '../domain/api';
 
+const PlayIcon = () => (
+  <svg
+    width="11"
+    height="11"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+    aria-hidden="true"
+  >
+    <polygon points="6 4 20 12 6 20 6 4" />
+  </svg>
+);
+
+const FilmReelIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="2" y="2" width="20" height="20" rx="2.5" />
+    <line x1="7" y1="2" x2="7" y2="22" />
+    <line x1="17" y1="2" x2="17" y2="22" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <line x1="2" y1="7" x2="7" y2="7" />
+    <line x1="2" y1="17" x2="7" y2="17" />
+    <line x1="17" y1="17" x2="22" y2="17" />
+    <line x1="17" y1="7" x2="22" y2="7" />
+  </svg>
+);
+
+const FileDocumentIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+  </svg>
+);
+
+const FolderIcon = () => (
+  <svg
+    class="tree-svg-icon"
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const ListIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <line x1="8" y1="6" x2="21" y2="6" />
+    <line x1="8" y1="12" x2="21" y2="12" />
+    <line x1="8" y1="18" x2="21" y2="18" />
+    <circle cx="3.5" cy="6" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="3.5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+    <circle cx="3.5" cy="18" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+const GridIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+  </svg>
+);
+
+const RotateCcwIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M1 4v6h6" />
+    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+  </svg>
+);
+
+const DownloadIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+  </svg>
+);
+
 export default function UserRecordings(): preact.JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -237,7 +420,8 @@ export default function UserRecordings(): preact.JSX.Element {
             <span>Script Library</span>
           </a>
           <a href="/?present=1" class="button button--primary">
-            ▶ Launch Teleprompter
+            <PlayIcon />
+            <span>Launch Teleprompter</span>
           </a>
         </div>
       </header>
@@ -268,7 +452,8 @@ export default function UserRecordings(): preact.JSX.Element {
             <div class="organizer-modal__header">
               <div>
                 <span class="organizer-badge-folder">
-                  📁 {activeScriptModal.folder_name || 'Uncategorized'}
+                  <FolderIcon />
+                  <span>{activeScriptModal.folder_name || 'Uncategorized'}</span>
                 </span>
                 <h2>{activeScriptModal.script_title || 'Untitled Script'}</h2>
               </div>
@@ -353,7 +538,9 @@ export default function UserRecordings(): preact.JSX.Element {
                 role="button"
                 tabIndex={0}
               >
-                <span class="tree-icon">🎬</span>
+                <span class="tree-icon">
+                  <FilmReelIcon />
+                </span>
                 <span class="tree-label">All Recordings</span>
                 <span class="tree-badge">{folderCounts.ALL || 0}</span>
               </div>
@@ -364,7 +551,9 @@ export default function UserRecordings(): preact.JSX.Element {
                 role="button"
                 tabIndex={0}
               >
-                <span class="tree-icon">📄</span>
+                <span class="tree-icon">
+                  <FileDocumentIcon />
+                </span>
                 <span class="tree-label">Uncategorized</span>
                 <span class="tree-badge">{folderCounts.UNCATEGORIZED || 0}</span>
               </div>
@@ -383,7 +572,9 @@ export default function UserRecordings(): preact.JSX.Element {
                         role="button"
                         tabIndex={0}
                       >
-                        <span class="tree-icon">📁</span>
+                        <span class="tree-icon">
+                          <FolderIcon />
+                        </span>
                         <span class="tree-label" title={folder.name}>
                           {folder.name}
                         </span>
@@ -403,7 +594,7 @@ export default function UserRecordings(): preact.JSX.Element {
           <div class="organizer-controls">
             <div class="organizer-search-box">
               <span class="search-icon" aria-hidden="true">
-                🔍
+                <SearchIcon />
               </span>
               <input
                 type="text"
@@ -451,7 +642,8 @@ export default function UserRecordings(): preact.JSX.Element {
                   onClick={() => handleSetViewLayout('grid')}
                   title="Grid view"
                 >
-                  ⊞ Grid
+                  <GridIcon />
+                  <span>Grid</span>
                 </button>
                 <button
                   type="button"
@@ -459,7 +651,8 @@ export default function UserRecordings(): preact.JSX.Element {
                   onClick={() => handleSetViewLayout('list')}
                   title="List view"
                 >
-                  ☰ List
+                  <ListIcon />
+                  <span>List</span>
                 </button>
               </div>
             </div>
@@ -521,13 +714,17 @@ export default function UserRecordings(): preact.JSX.Element {
                     onClick={() => setActiveVideo(rec.filepath)}
                   >
                     <video src={rec.filepath} preload="metadata" />
-                    <div class="recording-card__play-badge">▶ Play Video</div>
+                    <div class="recording-card__play-badge">
+                      <PlayIcon />
+                      <span>Play Video</span>
+                    </div>
                   </div>
 
                   <div class="recording-card__body">
                     <div class="recording-card__header-row">
                       <span class="organizer-badge-folder">
-                        📁 {rec.folder_name || 'Uncategorized'}
+                        <FolderIcon />
+                        <span>{rec.folder_name || 'Uncategorized'}</span>
                       </span>
                       <time class="recording-card__date">
                         {new Date(rec.created_at).toLocaleDateString()}
@@ -539,8 +736,8 @@ export default function UserRecordings(): preact.JSX.Element {
                     </h3>
 
                     <div class="recording-card__meta-bar">
-                      <span>⏱ {formatSeconds(rec.duration_seconds)}</span>
-                      <span>📦 {formatFileSize(rec.filesize)}</span>
+                      <span>{formatSeconds(rec.duration_seconds)}</span>
+                      <span>{formatFileSize(rec.filesize)}</span>
                     </div>
 
                     {/* Script Snippet & Link Section */}
@@ -569,35 +766,38 @@ export default function UserRecordings(): preact.JSX.Element {
                           class="view-script-link-btn"
                           onClick={() => setActiveScriptModal(rec)}
                         >
-                          👁 Read Full Script
+                          Read Full Script
                         </button>
                       )}
                     </div>
                   </div>
 
                   <div class="recording-card__footer">
-                    <button
-                      type="button"
-                      class="script-record-btn script-record-btn--sm"
-                      title="Launch teleprompter with this script and re-record"
-                      onClick={() => handleReRecord(rec)}
-                    >
-                      ▶ Re-record
-                    </button>
-                    <div class="recording-card__actions-group">
+                    <div class="table-actions-group">
+                      <button
+                        type="button"
+                        class="table-btn table-btn--accent"
+                        title="Launch teleprompter with this script and re-record"
+                        onClick={() => handleReRecord(rec)}
+                      >
+                        <RotateCcwIcon />
+                        <span>Re-record</span>
+                      </button>
                       <a
                         href={rec.filepath}
                         download={rec.filename}
-                        class="button button--small button--secondary"
+                        class="table-btn table-btn--secondary"
                       >
-                        Download
+                        <DownloadIcon />
+                        <span>Download</span>
                       </a>
                       <button
                         type="button"
-                        class="admin-danger-btn admin-danger-btn--sm"
+                        class="table-btn table-btn--danger table-btn--icon"
                         onClick={() => handleDelete(rec.id)}
+                        title="Delete recording"
                       >
-                        Delete
+                        <TrashIcon />
                       </button>
                     </div>
                   </div>
@@ -625,15 +825,18 @@ export default function UserRecordings(): preact.JSX.Element {
                       <td>
                         <button
                           type="button"
-                          class="admin-preview-btn"
+                          class="table-btn table-btn--secondary"
                           onClick={() => setActiveVideo(rec.filepath)}
+                          title="Play preview"
                         >
-                          ▶ Play
+                          <PlayIcon />
+                          <span>Play</span>
                         </button>
                       </td>
                       <td>
                         <span class="organizer-badge-folder">
-                          📁 {rec.folder_name || 'Uncategorized'}
+                          <FolderIcon />
+                          <span>{rec.folder_name || 'Uncategorized'}</span>
                         </span>
                       </td>
                       <td class="td-script-details">
@@ -653,7 +856,7 @@ export default function UserRecordings(): preact.JSX.Element {
                               class="view-script-link-btn"
                               onClick={() => setActiveScriptModal(rec)}
                             >
-                              👁 View Script
+                              View Script
                             </button>
                           )}
                           {rec.script_id && (
@@ -664,35 +867,41 @@ export default function UserRecordings(): preact.JSX.Element {
                         </div>
                       </td>
                       <td>
-                        <span class="meta-tag">⏱ {formatSeconds(rec.duration_seconds)}</span>
+                        <span class="meta-tag">{formatSeconds(rec.duration_seconds)}</span>
                       </td>
                       <td>
-                        <span class="meta-tag">📦 {formatFileSize(rec.filesize)}</span>
+                        <span class="meta-tag">{formatFileSize(rec.filesize)}</span>
                       </td>
                       <td>{new Date(rec.created_at).toLocaleDateString()}</td>
                       <td class="td-actions">
-                        <button
-                          type="button"
-                          class="script-record-btn script-record-btn--sm"
-                          title="Re-record in teleprompter"
-                          onClick={() => handleReRecord(rec)}
-                        >
-                          ▶ Re-record
-                        </button>
-                        <a
-                          href={rec.filepath}
-                          download={rec.filename}
-                          class="button button--small button--secondary"
-                        >
-                          Download
-                        </a>
-                        <button
-                          type="button"
-                          class="admin-danger-btn admin-danger-btn--sm"
-                          onClick={() => handleDelete(rec.id)}
-                        >
-                          Delete
-                        </button>
+                        <div class="table-actions-group">
+                          <button
+                            type="button"
+                            class="table-btn table-btn--accent"
+                            title="Re-record in teleprompter"
+                            onClick={() => handleReRecord(rec)}
+                          >
+                            <RotateCcwIcon />
+                            <span>Re-record</span>
+                          </button>
+                          <a
+                            href={rec.filepath}
+                            download={rec.filename}
+                            class="table-btn table-btn--secondary"
+                            title="Download recording"
+                          >
+                            <DownloadIcon />
+                            <span>Download</span>
+                          </a>
+                          <button
+                            type="button"
+                            class="table-btn table-btn--danger table-btn--icon"
+                            onClick={() => handleDelete(rec.id)}
+                            title="Delete recording"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
