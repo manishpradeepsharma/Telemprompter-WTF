@@ -908,6 +908,7 @@ export default function Presenter({
             ref={scriptElementRef}
             class="presenter__script"
             style={{
+              '--script-font-size': `${preferences.fontSize}px`,
               fontSize: `${preferences.fontSize}px`,
               lineHeight: preferences.lineHeight,
               textAlign: preferences.alignment,
@@ -957,79 +958,83 @@ export default function Presenter({
       </header>
 
       <div class="presenter__controls">
-        <button class="control-button control-button--primary" onClick={() => togglePlay('button')}>
-          {playing ? 'Pause' : progress >= 1 ? 'Play again' : 'Resume'}
-          <kbd>Space</kbd>
-        </button>
-        <div class="speed-stepper" aria-label="Scroll speed">
-          <button class="control-button" onClick={() => changeSpeed(-1)} aria-label="Slower">
-            −
+        <div class="presenter__controls-primary">
+          <button class="control-button control-button--primary" onClick={() => togglePlay('button')}>
+            {playing ? 'Pause' : progress >= 1 ? 'Play again' : 'Resume'}
+            <kbd>Space</kbd>
           </button>
-          <output aria-live="polite">
-            <b>{preferences.baseScrollSpeed}</b>
-            <span>Speed</span>
-          </output>
-          <button class="control-button" onClick={() => changeSpeed(1)} aria-label="Faster">
-            +
+          <div class="speed-stepper" aria-label="Scroll speed">
+            <button class="control-button" onClick={() => changeSpeed(-1)} aria-label="Slower">
+              −
+            </button>
+            <output aria-live="polite">
+              <b>{preferences.baseScrollSpeed}</b>
+              <span>Speed</span>
+            </output>
+            <button class="control-button" onClick={() => changeSpeed(1)} aria-label="Faster">
+              +
+            </button>
+          </div>
+          <button class="control-button" onClick={restart}>
+            Restart
           </button>
         </div>
-        <button class="control-button" onClick={restart}>
-          Restart
-        </button>
-        <VoiceTrackingControls
-          script={displayScript}
-          mode={preferences.voiceMode}
-          onModeChange={(voiceMode) => updatePreference('voiceMode', voiceMode)}
-          onMultiplier={updateVoiceMultiplier}
-          onAlignment={applyAlignment}
-          onVoiceActivity={handleVoiceActivity}
-        />
-        <RecordingControl
-          cameraStream={cameraStream}
-          onCameraStreamChange={setCameraStream}
-          onRecordingStart={() => {
-            if (!playing) setPlaying(true);
-          }}
-        />
-        <button
-          class={`control-button ${cameraStream ? 'control-button--active' : ''}`}
-          onClick={() => void toggleCamera()}
-          title={cameraStream ? 'Turn off camera backdrop' : 'Turn on camera backdrop'}
-          aria-label={cameraStream ? 'Turn off camera' : 'Turn on camera'}
-        >
-          {cameraStream ? 'Camera on' : 'Camera off'}
-        </button>
-        <PictureInPictureControl
-          script={displayScript}
-          progress={progress}
-          playing={playing}
-          onTogglePlay={togglePlay}
-        />
-        <button
-          ref={settingsButtonRef}
-          class="control-button"
-          onClick={() => {
-            analytics.track('opened_appearance_panel');
-            setSettingsOpen(true);
-          }}
-        >
-          Appearance
-        </button>
-        <button
-          ref={shortcutsButtonRef}
-          class="control-button"
-          onClick={() => {
-            analytics.track('opened_shortcuts_panel');
-            setShortcutsOpen(true);
-          }}
-        >
-          Shortcuts
-        </button>
-        {capabilities.fullscreen && (
-          <button class="control-button" onClick={() => void toggleFullscreen()}>
-            {fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        <div class="presenter__controls-secondary">
+          <VoiceTrackingControls
+            script={displayScript}
+            mode={preferences.voiceMode}
+            onModeChange={(voiceMode) => updatePreference('voiceMode', voiceMode)}
+            onMultiplier={updateVoiceMultiplier}
+            onAlignment={applyAlignment}
+            onVoiceActivity={handleVoiceActivity}
+          />
+          <RecordingControl
+            cameraStream={cameraStream}
+            onCameraStreamChange={setCameraStream}
+            onRecordingStart={() => {
+              if (!playing) setPlaying(true);
+            }}
+          />
+          <button
+            class={`control-button ${cameraStream ? 'control-button--active' : ''}`}
+            onClick={() => void toggleCamera()}
+            title={cameraStream ? 'Turn off camera backdrop' : 'Turn on camera backdrop'}
+            aria-label={cameraStream ? 'Turn off camera' : 'Turn on camera'}
+          >
+            {cameraStream ? 'Camera on' : 'Camera off'}
           </button>
-        )}
+          <PictureInPictureControl
+            script={displayScript}
+            progress={progress}
+            playing={playing}
+            onTogglePlay={togglePlay}
+          />
+          <button
+            ref={settingsButtonRef}
+            class="control-button"
+            onClick={() => {
+              analytics.track('opened_appearance_panel');
+              setSettingsOpen(true);
+            }}
+          >
+            Appearance
+          </button>
+          <button
+            ref={shortcutsButtonRef}
+            class="control-button control-button--shortcuts"
+            onClick={() => {
+              analytics.track('opened_shortcuts_panel');
+              setShortcutsOpen(true);
+            }}
+          >
+            Shortcuts
+          </button>
+          {capabilities.fullscreen && (
+            <button class="control-button" onClick={() => void toggleFullscreen()}>
+              {fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            </button>
+          )}
+        </div>
       </div>
 
       {settingsOpen && (

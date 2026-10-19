@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 import { FollowAligner } from '../domain/followIndex';
 import { analytics, PRIVATE_PRECISION_SIZE_BUCKET, type FallbackReason } from '../domain/analytics';
 import {
@@ -385,8 +386,10 @@ export default function VoiceTrackingControls({
         <span aria-hidden="true">{isActive ? '●' : '○'}</span>
         {statusLabel(state, mode, followEngine)}
       </button>
-      {open && (
-        <div class="presenter__scrim" onClick={close} onKeyDown={handleDialogKey}>
+      {open &&
+        (typeof document !== 'undefined'
+          ? createPortal(
+              <div class="presenter__scrim" onClick={close} onKeyDown={handleDialogKey}>
           <section
             ref={panelRef}
             class="voice-panel"
@@ -525,8 +528,10 @@ export default function VoiceTrackingControls({
               </p>
             )}
           </section>
-        </div>
-      )}
+        </div>,
+              document.body,
+            )
+          : null)}
     </>
   );
 }

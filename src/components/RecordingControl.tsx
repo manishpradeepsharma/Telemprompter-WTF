@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { createPortal } from 'preact/compat';
 import { analytics, durationBucket } from '../domain/analytics';
 import { detectBrowserCapabilities } from '../domain/capabilities';
 import { api } from '../domain/api';
@@ -402,167 +403,175 @@ export default function RecordingControl({
           <span aria-hidden="true" /> Stop recording <time>{formatTimer(seconds)}</time>
         </button>
       )}
-      {open && (
-        <div class="presenter__scrim" onClick={close} onKeyDown={handleDialogKey}>
-          <section
-            ref={panelRef}
-            class="record-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="record-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">Browser-local capture</p>
-                <h2 id="record-title">Record</h2>
-              </div>
-              <button ref={doneRef} class="control-button" onClick={close}>
-                Done
-              </button>
-            </div>
-            {!recording && !previewUrl && (
-              <>
-                <fieldset class="record-modes">
-                  <legend>What do you want to record?</legend>
-                  {capabilities.displayCapture && (
-                    <label>
-                      <input
-                        type="radio"
-                        name="record-mode"
-                        checked={mode === 'screen'}
-                        onChange={() => setMode('screen')}
-                      />
-                      <span>
-                        <b>Screen</b>
-                        <small>A tab, window, or display</small>
-                      </span>
-                    </label>
-                  )}
-                  {capabilities.camera && (
-                    <label>
-                      <input
-                        type="radio"
-                        name="record-mode"
-                        checked={mode === 'camera'}
-                        onChange={() => setMode('camera')}
-                      />
-                      <span>
-                        <b>Camera</b>
-                        <small>Your local webcam feed</small>
-                      </span>
-                    </label>
-                  )}
-                </fieldset>
-                <label class="toggle-field record-mic">
-                  <span>
-                    <b>Include microphone</b>
-                    <small>Requested only when recording starts</small>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={includeMic}
-                    onChange={(event) => setIncludeMic(event.currentTarget.checked)}
-                  />
-                </label>
-                <button
-                  class="button button--primary button--start-record"
-                  onClick={() => void start()}
+      {open &&
+        (typeof document !== 'undefined'
+          ? createPortal(
+              <div class="presenter__scrim" onClick={close} onKeyDown={handleDialogKey}>
+                <section
+                  ref={panelRef}
+                  class="record-panel"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="record-title"
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  Start recording
-                </button>
-              </>
-            )}
-            {recording && (
-              <div class="recording-live" role="status">
-                <span aria-hidden="true" />
-                <strong>Recording {formatTimer(seconds)}</strong>
-                <p>The browser is capturing your {mode}. Stop is always available above.</p>
-                <button class="button button--primary" onClick={finish}>
-                  Stop and preview
-                </button>
-              </div>
-            )}
-            {previewUrl && !recording && (
-              <div class="record-preview">
-                <video controls src={previewUrl} />
-                <div class="record-preview-actions">
-                  <button class="button button--primary" onClick={download}>
-                    Save recording
-                  </button>
-                  <button
-                    class="button button--upload"
-                    onClick={uploadToServer}
-                    disabled={uploading || uploadSuccess}
-                  >
-                    {uploading
-                      ? 'Uploading to Server…'
-                      : uploadSuccess
-                        ? '✓ Uploaded to Server'
-                        : '☁ Upload to Server'}
-                  </button>
-                  <button
-                    class="button button--quiet"
-                    onClick={() => {
-                      URL.revokeObjectURL(previewUrl);
-                      setPreviewUrl('');
-                      recordedBlobRef.current = null;
-                      setUploadSuccess(false);
-                      setUploadError('');
-                      analytics.track('discarded_recording', { recording_type: mode });
-                    }}
-                  >
-                    Discard
+                  <div class="panel-heading">
+                    <div>
+                      <p class="eyebrow">Browser-local capture</p>
+                      <h2 id="record-title">Record</h2>
+                    </div>
+                    <button ref={doneRef} class="control-button" onClick={close}>
+                      Done
+                    </button>
+                  </div>
+                  {!recording && !previewUrl && (
+                    <>
+                      <fieldset class="record-modes">
+                        <legend>What do you want to record?</legend>
+                        {capabilities.displayCapture && (
+                          <label>
+                            <input
+                              type="radio"
+                              name="record-mode"
+                              checked={mode === 'screen'}
+                              onChange={() => setMode('screen')}
+                            />
+                            <span>
+                              <b>Screen</b>
+                              <small>A tab, window, or display</small>
+                            </span>
+                          </label>
+                        )}
+                        {capabilities.camera && (
+                          <label>
+                            <input
+                              type="radio"
+                              name="record-mode"
+                              checked={mode === 'camera'}
+                              onChange={() => setMode('camera')}
+                            />
+                            <span>
+                              <b>Camera</b>
+                              <small>Your local webcam feed</small>
+                            </span>
+                          </label>
+                        )}
+                      </fieldset>
+                      <label class="toggle-field record-mic">
+                        <span>
+                          <b>Include microphone</b>
+                          <small>Requested only when recording starts</small>
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={includeMic}
+                          onChange={(event) => setIncludeMic(event.currentTarget.checked)}
+                        />
+                      </label>
+                      <button
+                        class="button button--primary button--start-record"
+                        onClick={() => void start()}
+                      >
+                        Start recording
+                      </button>
+                    </>
+                  )}
+                  {recording && (
+                    <div class="recording-live" role="status">
+                      <span aria-hidden="true" />
+                      <strong>Recording {formatTimer(seconds)}</strong>
+                      <p>The browser is capturing your {mode}. Stop is always available above.</p>
+                      <button class="button button--primary" onClick={finish}>
+                        Stop and preview
+                      </button>
+                    </div>
+                  )}
+                  {previewUrl && !recording && (
+                    <div class="record-preview">
+                      <video controls src={previewUrl} />
+                      <div class="record-preview-actions">
+                        <button class="button button--primary" onClick={download}>
+                          Save recording
+                        </button>
+                        <button
+                          class="button button--upload"
+                          onClick={uploadToServer}
+                          disabled={uploading || uploadSuccess}
+                        >
+                          {uploading
+                            ? 'Uploading to Server…'
+                            : uploadSuccess
+                              ? '✓ Uploaded to Server'
+                              : '☁ Upload to Server'}
+                        </button>
+                        <button
+                          class="button button--quiet"
+                          onClick={() => {
+                            URL.revokeObjectURL(previewUrl);
+                            setPreviewUrl('');
+                            recordedBlobRef.current = null;
+                            setUploadSuccess(false);
+                            setUploadError('');
+                            analytics.track('discarded_recording', { recording_type: mode });
+                          }}
+                        >
+                          Discard
+                        </button>
+                      </div>
+                      {uploadError && (
+                        <p class="record-upload-msg record-upload-msg--error">
+                          {uploadError}{' '}
+                          {uploadError.includes('log in') && (
+                            <a href="/login" target="_blank" rel="noopener noreferrer">
+                              Log in here
+                            </a>
+                          )}
+                        </p>
+                      )}
+                      {uploadSuccess && (
+                        <p class="record-upload-msg record-upload-msg--success">
+                          Recording saved to server filestore!{' '}
+                          <a href="/recordings" target="_blank" rel="noopener noreferrer">
+                            View in My Recordings
+                          </a>
+                        </p>
+                      )}
+                      <p>{mimeType.includes('mp4') ? 'MP4' : 'WebM'} video format.</p>
+                    </div>
+                  )}
+                  <p class="record-privacy">Recording stays on this device. Nothing is uploaded.</p>
+                  {message && (
+                    <p class="voice-message" role="status">
+                      {message}
+                    </p>
+                  )}
+                </section>
+              </div>,
+              document.body,
+            )
+          : null)}
+      {countdown !== null &&
+        (typeof document !== 'undefined'
+          ? createPortal(
+              <div
+                class="recording-countdown-overlay"
+                aria-live="assertive"
+                role="alert"
+                onClick={cancelCountdown}
+              >
+                <div class="recording-countdown-card" onClick={(event) => event.stopPropagation()}>
+                  <span class="recording-countdown-number" key={countdown}>
+                    {countdown}
+                  </span>
+                  <span class="recording-countdown-label">Get Ready</span>
+                  <button type="button" class="recording-countdown-cancel" onClick={cancelCountdown}>
+                    Cancel
                   </button>
                 </div>
-                {uploadError && (
-                  <p class="record-upload-msg record-upload-msg--error">
-                    {uploadError}{' '}
-                    {uploadError.includes('log in') && (
-                      <a href="/login" target="_blank" rel="noopener noreferrer">
-                        Log in here
-                      </a>
-                    )}
-                  </p>
-                )}
-                {uploadSuccess && (
-                  <p class="record-upload-msg record-upload-msg--success">
-                    Recording saved to server filestore!{' '}
-                    <a href="/recordings" target="_blank" rel="noopener noreferrer">
-                      View in My Recordings
-                    </a>
-                  </p>
-                )}
-                <p>{mimeType.includes('mp4') ? 'MP4' : 'WebM'} video format.</p>
-              </div>
-            )}
-            <p class="record-privacy">Recording stays on this device. Nothing is uploaded.</p>
-            {message && (
-              <p class="voice-message" role="status">
-                {message}
-              </p>
-            )}
-          </section>
-        </div>
-      )}
-      {countdown !== null && (
-        <div
-          class="recording-countdown-overlay"
-          aria-live="assertive"
-          role="alert"
-          onClick={cancelCountdown}
-        >
-          <div class="recording-countdown-card" onClick={(event) => event.stopPropagation()}>
-            <span class="recording-countdown-number" key={countdown}>
-              {countdown}
-            </span>
-            <span class="recording-countdown-label">Get Ready</span>
-            <button type="button" class="recording-countdown-cancel" onClick={cancelCountdown}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+              </div>,
+              document.body,
+            )
+          : null)}
     </>
   );
 }

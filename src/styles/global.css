@@ -1166,6 +1166,13 @@ button {
   box-shadow: 0 18px 60px rgb(0 0 0 / 0.5);
 }
 
+.presenter__controls-primary,
+.presenter__controls-secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .presenter:not(.presenter--controls) .presenter__topbar {
   opacity: 0;
   transform: translateY(-12px);
@@ -1317,16 +1324,31 @@ kbd {
 }
 
 .presenter__scrim {
-  position: fixed;
-  z-index: 50;
-  inset: 0;
+  position: fixed !important;
+  z-index: 9999 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
     max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
-  background: rgb(0 0 0 / 0.68);
-  backdrop-filter: blur(3px);
+  background: rgb(0 0 0 / 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.recording-countdown-overlay {
+  position: fixed !important;
+  z-index: 10000 !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.8);
+  backdrop-filter: blur(8px);
 }
 
 .settings-panel,
@@ -2227,37 +2249,101 @@ kbd {
   }
 
   .presenter__controls {
-    display: grid;
-    width: auto;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    overflow: visible;
-    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 1rem);
+    max-width: 480px;
+    min-height: auto;
+    right: 0.5rem;
+    left: 0.5rem;
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    margin-inline: auto;
+    padding: 0.4rem;
+    gap: 0.35rem;
+    border-radius: 14px;
+    background: rgb(20 21 18 / 0.96);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 12px 40px rgb(0 0 0 / 0.6);
   }
 
-  .presenter__controls::-webkit-scrollbar {
+  .presenter__controls-primary {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .presenter__controls-primary .control-button--primary {
+    flex: 1 1 auto;
+    min-width: 80px;
+    min-height: 42px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .presenter__controls-primary .speed-stepper {
+    flex: 0 0 auto;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .presenter__controls-primary .speed-stepper .control-button {
+    min-width: 32px;
+    padding: 0 0.4rem;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .presenter__controls-primary .speed-stepper output {
+    min-width: 44px;
+    padding: 0 0.25rem;
+  }
+
+  .presenter__controls-primary .speed-stepper output b {
+    font-size: 0.95rem;
+  }
+
+  .presenter__controls-primary .speed-stepper output span {
+    font-size: 0.55rem;
+  }
+
+  .presenter__controls-primary > :last-child {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.74rem;
+  }
+
+  .presenter__controls-secondary {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.3rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  .presenter__controls-secondary::-webkit-scrollbar {
     display: none;
   }
 
-  .control-button {
-    width: 100%;
-    padding-inline: 0.3rem;
-    font-size: 0.68rem;
+  .presenter__controls-secondary .control-button {
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 36px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    border-radius: 8px;
   }
 
-  .presenter__controls > :nth-child(1) {
-    grid-column: span 2;
-  }
-
-  .presenter__controls > :nth-child(2) {
-    grid-column: span 3;
-  }
-
-  .presenter__controls > :nth-child(3) {
-    grid-column: span 1;
-  }
-
-  .presenter__controls > :nth-child(n + 4) {
-    grid-column: span 2;
+  .control-button--shortcuts {
+    display: none;
   }
 
   .control-button kbd,
@@ -2399,7 +2485,14 @@ kbd {
   }
 
   .presenter__script-wrap {
-    width: max(var(--text-width), 86%);
+    width: 92% !important;
+    padding-inline: 0.5rem;
+    padding-block: min(var(--focus-position, 35vh), 35vh) calc(100dvh - min(var(--focus-position, 35vh), 35vh));
+  }
+
+  .presenter__script {
+    font-size: clamp(22px, calc(var(--script-font-size, 56px) * 0.62), 44px) !important;
+    line-height: 1.45 !important;
   }
 
   .presenter__readout span:nth-child(2) {
@@ -2422,16 +2515,20 @@ kbd {
   }
 
   .presenter__scrim {
-    padding: 0;
+    padding: 0 !important;
   }
 
   .settings-panel,
-  .shortcuts-panel {
-    max-height: min(88dvh, 760px);
-    border-right: 0;
-    border-bottom: 0;
-    border-left: 0;
-    border-radius: 14px 14px 0 0;
+  .shortcuts-panel,
+  .voice-panel,
+  .record-panel {
+    width: 100% !important;
+    max-height: min(90dvh, 760px) !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-sizing: border-box !important;
   }
 
   .consent {
@@ -3143,10 +3240,27 @@ kbd {
     margin-left: 0;
   }
 
+  .record-preview video {
+    width: 100%;
+    max-height: 42vh;
+    border-radius: 8px;
+  }
+
+  .record-preview-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .record-preview-actions .button {
+    width: 100%;
+  }
+
   .recording-stop {
     top: auto;
     right: 0.5rem;
-    bottom: 11.5rem;
+    bottom: 6.5rem;
     left: 0.5rem;
     justify-content: center;
     transform: none;
