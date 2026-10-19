@@ -63,21 +63,60 @@ function verifyPassword(password, storedHash) {
   return timingSafeEqual(keyBuffer, derivedKey);
 }
 
+function isDockerOrBridgeIp(ip) {
+  if (!ip) return false;
+  const parts = ip.split('.').map(Number);
+  if (parts.length === 4) {
+    // 172.16.0.0 - 172.31.255.255 (Standard Docker bridge subnets)
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    // 10.0.2.x (VirtualBox / WSL NAT)
+    if (parts[0] === 10 && parts[1] === 0 && parts[2] === 2) return true;
+    // 192.168.65.x (Docker Desktop VM NAT)
+    if (parts[0] === 192 && parts[1] === 168 && parts[2] === 65) return true;
+  }
+  return false;
+}
+
 // Helper: detect local LAN IP
-function getLanIp() {
+function getLanIp(reqHost) {
+  const envIp = (process.env.LAN_IP || process.env.HOST_IP || '').trim();
+  if (envIp) {
+    return envIp;
+  }
+
+  // If request host is an actual LAN IP (e.g. user loaded page via 192.168.x.x)
+  if (reqHost) {
+    const cleanHost = reqHost.split(':')[0].trim();
+    if (
+      cleanHost &&
+      cleanHost !== 'localhost' &&
+      cleanHost !== '127.0.0.1' &&
+      !isDockerOrBridgeIp(cleanHost) &&
+      /^(\d{1,3}\.){3}\d{1,3}$/.test(cleanHost)
+    ) {
+      return cleanHost;
+    }
+  }
+
   const interfaces = os.networkInterfaces();
+  let candidate = null;
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name] || []) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
+        if (!isDockerOrBridgeIp(iface.address)) {
+          return iface.address;
+        }
+        if (!candidate) candidate = iface.address;
       }
     }
   }
-  return '192.168.1.5';
+  return candidate || '192.168.1.5';
 }
 
-app.get('/api/lan-info', (_req, res) => {
-  const lanIp = getLanIp();
+app.get('/api/lan-info', (req, res) => {
+  const forwardedHost = req.headers['x-forwarded-host'] || req.headers.host;
+  const lanIp = getLanIp(forwardedHost);
+  const isDockerIp = isDockerOrBridgeIp(lanIp);
   const httpPort = 4321;
   const httpsPort = 4323;
   const sslKeyPath = join(__dirname, '../ssl/key.pem');
@@ -85,6 +124,7 @@ app.get('/api/lan-info', (_req, res) => {
   const hasHttps = existsSync(sslKeyPath) && existsSync(sslCertPath);
   res.json({
     lanIp,
+    isDockerIp,
     httpPort,
     httpsPort,
     hasHttps,

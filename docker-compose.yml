@@ -13,6 +13,8 @@ services:
       - NODE_ENV=production
       - WEB_HOST=teleprompter
       - WEB_PORT=8080
+      - LAN_IP=${LAN_IP:-}
+      - HOST_IP=${HOST_IP:-}
     volumes:
       - ./data:/app/data
       - ./filestore:/app/filestore

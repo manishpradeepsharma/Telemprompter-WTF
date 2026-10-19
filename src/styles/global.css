@@ -5909,6 +5909,89 @@ kbd {
   color: #5c3c00;
 }
 
+.mobile-qr-notice--warning {
+  background: #fff3cd;
+  border-color: #ffe69c;
+  color: #664d03;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-qr-notice code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-family: var(--font-mono, monospace);
+}
+
+.mobile-qr-ip-config {
+  margin: 0.65rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mobile-qr-ip-config__row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.mobile-qr-ip-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-secondary, #666);
+  white-space: nowrap;
+}
+
+.mobile-qr-ip-input {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  font-family: var(--font-mono, monospace);
+  background: #ffffff;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 6px;
+  color: var(--ink, #111827);
+  outline: none;
+}
+
+.mobile-qr-ip-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.mobile-qr-ip-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #1f2937;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.mobile-qr-ip-btn:hover {
+  background: #111827;
+}
+
+.mobile-qr-ip-reset {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mobile-qr-ip-reset:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
 /* ==========================================================================
    Presenter Camera Permission Prompt
    ========================================================================== */
