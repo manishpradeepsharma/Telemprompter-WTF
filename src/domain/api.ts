@@ -5,6 +5,16 @@ export interface User {
   role: 'user' | 'admin';
 }
 
+export interface AdminUserItem {
+  id: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+  created_at: string;
+  scripts_count?: number;
+  recordings_count?: number;
+}
+
 export interface ScriptItem {
   id: string;
   title: string;
@@ -383,6 +393,71 @@ export const api = {
       return res.ok;
     } catch {
       return false;
+    }
+  },
+
+  async getUsers(): Promise<AdminUserItem[]> {
+    try {
+      const res = await fetch('/api/admin/users', { credentials: 'include' });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.users || [];
+    } catch {
+      return [];
+    }
+  },
+
+  async createUser(payload: {
+    email: string;
+    name: string;
+    password: string;
+    role: 'user' | 'admin';
+  }): Promise<{ user?: AdminUserItem; error?: string }> {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Failed to create user' };
+      return { user: data.user };
+    } catch {
+      return { error: 'Network error creating user' };
+    }
+  },
+
+  async updateUser(
+    id: string,
+    payload: { name?: string; role?: 'user' | 'admin'; password?: string },
+  ): Promise<{ user?: AdminUserItem; error?: string }> {
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Failed to update user' };
+      return { user: data.user };
+    } catch {
+      return { error: 'Network error updating user' };
+    }
+  },
+
+  async deleteUser(id: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) return { success: false, error: data.error || 'Failed to delete user' };
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Network error deleting user' };
     }
   },
 };

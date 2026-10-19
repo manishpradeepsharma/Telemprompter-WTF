@@ -92,6 +92,25 @@ teleprompter-web   teleprompter-wtf-web   Up (healthy)              0.0.0.0:80->
     Then restart the stack with `docker compose down && docker compose up -d`.
   - **iOS Safari SSL Warning**: When opening `https://<server-ip>:4323` on iPhone/iPad with a self-signed certificate, Safari displays *"This Connection Is Not Private"*. Tap **Show Details** at the bottom, then tap **"visit this website"** to proceed and allow camera permissions.
 
+### 4. Administrator Account & User Management
+
+A default administrator account is automatically initialized on server startup:
+
+- **Login URL**: `http://localhost:4321/login` (or `http://<server-ip>:4321/login`)
+- **Username / Email**: `admin`
+- **Password**: `TPrompt123`
+
+#### 👑 Admin Panel (`/admin`)
+Log in with the admin credentials above, then navigate to `/admin` (or click **Admin Panel** in the top navigation):
+- **Manage Users Tab**:
+  - **View Accounts**: See all registered users, roles, and how many scripts and recordings each user owns.
+  - **Change Roles**: Promote users to `Admin` or demote to `User` directly via dropdown.
+  - **Reset Passwords**: Set a new password for any user account instantly.
+  - **Add Users**: Create new user accounts directly from the admin dashboard.
+  - **Delete Users**: Remove users (with safeguards to prevent deleting your own active admin account).
+- **Shared Scripts & Folders Tab**: Organize scripts into shared categories and team folders.
+- **Server Recordings Tab**: Preview, stream, download, or delete recording files stored on the server.
+
 ---
 
 ## 🛡️ Windows Defender Firewall Rule (For LAN Access)

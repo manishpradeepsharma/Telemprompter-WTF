@@ -63,6 +63,44 @@ function verifyPassword(password, storedHash) {
   return timingSafeEqual(keyBuffer, derivedKey);
 }
 
+// Seed or synchronize default admin account (admin / TPrompt123)
+function seedDefaultAdmin() {
+  try {
+    const adminUser = (process.env.ADMIN_USER || 'admin').trim();
+    const adminPass = process.env.ADMIN_PASSWORD || 'TPrompt123';
+    const hash = hashPassword(adminPass);
+    const now = new Date().toISOString();
+
+    const existing = db
+      .prepare('SELECT id, email, name, role FROM users WHERE LOWER(email) = ? OR LOWER(name) = ?')
+      .get(adminUser.toLowerCase(), adminUser.toLowerCase());
+
+    if (!existing) {
+      const id = 'admin-default-root';
+      db.prepare(
+        `
+        INSERT INTO users (id, email, name, password_hash, role, created_at)
+        VALUES (?, ?, ?, ?, 'admin', ?)
+      `,
+      ).run(id, adminUser.toLowerCase(), adminUser, hash, now);
+      console.log(`[Admin Seed] Initialized default administrator '${adminUser}'`);
+    } else {
+      // Ensure password matches and role is admin
+      db.prepare(
+        `
+        UPDATE users
+        SET password_hash = ?, role = 'admin'
+        WHERE id = ?
+      `,
+      ).run(hash, existing.id);
+      console.log(`[Admin Seed] Synchronized default administrator '${existing.name || adminUser}'`);
+    }
+  } catch (err) {
+    console.error('[Admin Seed] Error synchronizing default admin account:', err);
+  }
+}
+seedDefaultAdmin();
+
 function isDockerOrBridgeIp(ip) {
   if (!ip) return false;
   const parts = ip.split('.').map(Number);
@@ -218,12 +256,14 @@ app.post('/api/auth/login', (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return res.status(400).json({ error: 'Username or email and password are required' });
     }
-    const cleanEmail = email.trim().toLowerCase();
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(cleanEmail);
+    const cleanIdentifier = email.trim().toLowerCase();
+    const user = db
+      .prepare('SELECT * FROM users WHERE LOWER(email) = ? OR LOWER(name) = ?')
+      .get(cleanIdentifier, cleanIdentifier);
     if (!user || !verifyPassword(password, user.password_hash)) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Invalid username/email or password' });
     }
 
     const token = randomBytes(32).toString('hex');
@@ -265,6 +305,179 @@ app.post('/api/auth/logout', (req, res) => {
 app.get('/api/auth/me', (req, res) => {
   const user = getCurrentUser(req);
   return res.json({ user });
+});
+
+// ---------------- ADMIN USER MANAGEMENT ROUTES ----------------
+
+// Get all users (Admin only)
+app.get('/api/admin/users', (req, res) => {
+  try {
+    const currentUser = getCurrentUser(req);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Administrator access required' });
+    }
+
+    const users = db
+      .prepare(
+        `
+      SELECT 
+        users.id, 
+        users.email, 
+        users.name, 
+        users.role, 
+        users.created_at,
+        (SELECT COUNT(*) FROM scripts WHERE scripts.created_by = users.id) as scripts_count,
+        (SELECT COUNT(*) FROM recordings WHERE recordings.user_id = users.id) as recordings_count
+      FROM users
+      ORDER BY users.created_at DESC
+    `,
+      )
+      .all();
+
+    return res.json({ users });
+  } catch (error) {
+    console.error('Fetch users error:', error);
+    return res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Create new user (Admin only)
+app.post('/api/admin/users', (req, res) => {
+  try {
+    const currentUser = getCurrentUser(req);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Administrator access required' });
+    }
+
+    const { email, name, password, role } = req.body;
+    if (!email || !name || !password) {
+      return res.status(400).json({ error: 'Email/username, name, and password are required' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    const userRole = role === 'admin' ? 'admin' : 'user';
+
+    const existing = db
+      .prepare('SELECT id FROM users WHERE LOWER(email) = ? OR LOWER(name) = ?')
+      .get(cleanEmail, cleanName.toLowerCase());
+    if (existing) {
+      return res.status(409).json({ error: 'User with this email or username already exists' });
+    }
+
+    const userId = randomBytes(12).toString('hex');
+    const passwordHash = hashPassword(password);
+    const now = new Date().toISOString();
+
+    db.prepare(
+      `
+      INSERT INTO users (id, email, name, password_hash, role, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `,
+    ).run(userId, cleanEmail, cleanName, passwordHash, userRole, now);
+
+    return res.status(201).json({
+      user: {
+        id: userId,
+        email: cleanEmail,
+        name: cleanName,
+        role: userRole,
+        created_at: now,
+        scripts_count: 0,
+        recordings_count: 0,
+      },
+    });
+  } catch (error) {
+    console.error('Admin create user error:', error);
+    return res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+// Update user role, name, or reset password (Admin only)
+app.patch('/api/admin/users/:id', (req, res) => {
+  try {
+    const currentUser = getCurrentUser(req);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Administrator access required' });
+    }
+
+    const { id } = req.params;
+    const { role, name, password } = req.body;
+
+    const targetUser = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Protect against demoting oneself if you are the only admin
+    if (targetUser.id === currentUser.id && role && role !== 'admin') {
+      const adminCount = db
+        .prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
+        .get();
+      if (adminCount.count <= 1) {
+        return res
+          .status(400)
+          .json({ error: 'Cannot demote the only remaining administrator account' });
+      }
+    }
+
+    let updatedHash = targetUser.password_hash;
+    if (password && password.trim()) {
+      updatedHash = hashPassword(password.trim());
+    }
+
+    const updatedRole = role === 'admin' || role === 'user' ? role : targetUser.role;
+    const updatedName = name && name.trim() ? name.trim() : targetUser.name;
+
+    db.prepare(
+      `
+      UPDATE users
+      SET role = ?, name = ?, password_hash = ?
+      WHERE id = ?
+    `,
+    ).run(updatedRole, updatedName, updatedHash, id);
+
+    return res.json({
+      user: {
+        id: targetUser.id,
+        email: targetUser.email,
+        name: updatedName,
+        role: updatedRole,
+        created_at: targetUser.created_at,
+      },
+    });
+  } catch (error) {
+    console.error('Admin update user error:', error);
+    return res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Delete user (Admin only)
+app.delete('/api/admin/users/:id', (req, res) => {
+  try {
+    const currentUser = getCurrentUser(req);
+    if (!currentUser || currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Administrator access required' });
+    }
+
+    const { id } = req.params;
+    if (id === currentUser.id) {
+      return res.status(400).json({ error: 'Cannot delete your own active administrator account' });
+    }
+
+    const targetUser = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    db.prepare('DELETE FROM sessions WHERE user_id = ?').run(id);
+    db.prepare('DELETE FROM users WHERE id = ?').run(id);
+
+    return res.json({ ok: true, deletedId: id });
+  } catch (error) {
+    console.error('Admin delete user error:', error);
+    return res.status(500).json({ error: 'Failed to delete user' });
+  }
 });
 
 // ---------------- FOLDER ROUTES ----------------

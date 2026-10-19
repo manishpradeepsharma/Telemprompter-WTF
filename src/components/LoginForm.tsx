@@ -42,12 +42,12 @@ export default function LoginForm(): preact.JSX.Element {
 
       <form onSubmit={handleSubmit} class="auth-form">
         <label class="auth-field">
-          <span>Email address</span>
+          <span>Email or Username</span>
           <input
-            type="email"
+            type="text"
             required
-            autoComplete="email"
-            placeholder="you@example.com"
+            autoComplete="username"
+            placeholder="admin or you@example.com"
             value={email}
             onInput={(e) => setEmail(e.currentTarget.value)}
           />
