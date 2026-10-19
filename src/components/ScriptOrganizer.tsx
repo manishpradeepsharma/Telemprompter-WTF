@@ -123,7 +123,20 @@ export default function ScriptOrganizer({
   const [sortBy, setSortBy] = useState<
     'updated_desc' | 'updated_asc' | 'title_asc' | 'title_desc' | 'length_desc'
   >('updated_desc');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('teleprompter_scripts_view_mode');
+      if (saved === 'grid' || saved === 'table') return saved;
+    }
+    return 'table';
+  });
+
+  const handleSetViewMode = (mode: 'grid' | 'table') => {
+    setViewMode(mode);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('teleprompter_scripts_view_mode', mode);
+    }
+  };
   const [pageSize, setPageSize] = useState<number>(24);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
@@ -898,7 +911,7 @@ export default function ScriptOrganizer({
                   type="button"
                   class={`view-btn ${viewMode === 'grid' ? 'view-btn--active' : ''}`}
                   title="Card Grid View"
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => handleSetViewMode('grid')}
                 >
                   ▦ Grid
                 </button>
@@ -906,7 +919,7 @@ export default function ScriptOrganizer({
                   type="button"
                   class={`view-btn ${viewMode === 'table' ? 'view-btn--active' : ''}`}
                   title="Compact Table View"
-                  onClick={() => setViewMode('table')}
+                  onClick={() => handleSetViewMode('table')}
                 >
                   ☰ List
                 </button>

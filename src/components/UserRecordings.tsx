@@ -15,7 +15,20 @@ export default function UserRecordings(): preact.JSX.Element {
   const [sortBy, setSortBy] = useState<
     'newest' | 'oldest' | 'duration_desc' | 'duration_asc' | 'title'
   >('newest');
-  const [viewLayout, setViewLayout] = useState<'grid' | 'list'>('grid');
+  const [viewLayout, setViewLayout] = useState<'grid' | 'list'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('teleprompter_recordings_view_layout');
+      if (saved === 'grid' || saved === 'list') return saved;
+    }
+    return 'list';
+  });
+
+  const handleSetViewLayout = (layout: 'grid' | 'list') => {
+    setViewLayout(layout);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('teleprompter_recordings_view_layout', layout);
+    }
+  };
 
   useEffect(() => {
     api.getAuth().then((currentUser) => {
@@ -420,7 +433,7 @@ export default function UserRecordings(): preact.JSX.Element {
                 <button
                   type="button"
                   class={`view-btn ${viewLayout === 'grid' ? 'view-btn--active' : ''}`}
-                  onClick={() => setViewLayout('grid')}
+                  onClick={() => handleSetViewLayout('grid')}
                   title="Grid view"
                 >
                   ⊞ Grid
@@ -428,7 +441,7 @@ export default function UserRecordings(): preact.JSX.Element {
                 <button
                   type="button"
                   class={`view-btn ${viewLayout === 'list' ? 'view-btn--active' : ''}`}
-                  onClick={() => setViewLayout('list')}
+                  onClick={() => handleSetViewLayout('list')}
                   title="List view"
                 >
                   ☰ List
