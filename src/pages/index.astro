@@ -1,5 +1,6 @@
 ---
 import TeleprompterApp from '../components/TeleprompterApp';
+import MobileQrConnect from '../components/MobileQrConnect';
 import Layout from '../layouts/Layout.astro';
 
 const title = 'Free Online Teleprompter That Follows Your Pace | teleprompter.wtf';
@@ -60,6 +61,9 @@ const schema = [
           <li>No watermark</li>
           <li>Server storage & filestore</li>
         </ul>
+        <div class="home-hero__mobile-actions">
+          <MobileQrConnect client:load />
+        </div>
       </div>
       <figure class="home-hero__art">
         <img

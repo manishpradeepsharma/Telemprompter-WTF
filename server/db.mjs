@@ -81,3 +81,20 @@ try {
 } catch {
   // Column already exists
 }
+
+// Migration: add script_content, folder_id, folder_name to recordings
+try {
+  db.exec(`ALTER TABLE recordings ADD COLUMN script_content TEXT;`);
+} catch {
+  // Column already exists
+}
+try {
+  db.exec(`ALTER TABLE recordings ADD COLUMN folder_id TEXT;`);
+} catch {
+  // Column already exists
+}
+try {
+  db.exec(`ALTER TABLE recordings ADD COLUMN folder_name TEXT;`);
+} catch {
+  // Column already exists
+}

@@ -120,11 +120,27 @@ export default function AdminPanel(): preact.JSX.Element {
           )}
 
           <div class="admin-card">
-            <h2>User Recordings in Server Filestore</h2>
-            <p class="admin-card__desc">
-              All recordings uploaded by users from the teleprompter. Stored on server SQLite &
-              filestore folder.
-            </p>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                marginBottom: '1rem',
+              }}
+            >
+              <div>
+                <h2>User Recordings in Server Filestore</h2>
+                <p class="admin-card__desc" style={{ marginBottom: 0 }}>
+                  All recordings uploaded by users from the teleprompter. Stored on server SQLite &
+                  filestore folder.
+                </p>
+              </div>
+              <a href="/recordings" class="button button--secondary button--small">
+                🎬 View in Recordings Gallery
+              </a>
+            </div>
 
             {recordings.length === 0 ? (
               <p class="admin-empty">No recordings uploaded to server yet.</p>
@@ -134,8 +150,9 @@ export default function AdminPanel(): preact.JSX.Element {
                   <thead>
                     <tr>
                       <th>Preview</th>
+                      <th>Category</th>
                       <th>User</th>
-                      <th>Script</th>
+                      <th>Script / Title</th>
                       <th>Duration</th>
                       <th>Size</th>
                       <th>Date</th>
@@ -155,10 +172,42 @@ export default function AdminPanel(): preact.JSX.Element {
                           </button>
                         </td>
                         <td>
+                          <span class="organizer-badge-folder">
+                            📁 {rec.folder_name || 'Uncategorized'}
+                          </span>
+                        </td>
+                        <td>
                           <strong>{rec.user_name}</strong>
                           <small>{rec.user_email}</small>
                         </td>
-                        <td>{rec.script_title || 'Untitled'}</td>
+                        <td>
+                          <strong style={{ color: 'var(--ink)' }}>
+                            {rec.script_title || 'Untitled'}
+                          </strong>
+                          {rec.script_content && (
+                            <small
+                              style={{
+                                color: 'var(--muted)',
+                                display: 'block',
+                                maxWidth: '280px',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {rec.script_content}
+                            </small>
+                          )}
+                          {rec.script_id && (
+                            <a
+                              href={`/scripts?id=${rec.script_id}`}
+                              class="script-quick-link"
+                              style={{ display: 'inline-block', marginTop: '0.2rem' }}
+                            >
+                              ↗ Original Script
+                            </a>
+                          )}
+                        </td>
                         <td>{formatSeconds(rec.duration_seconds)}</td>
                         <td>{formatFileSize(rec.filesize)}</td>
                         <td>{new Date(rec.created_at).toLocaleString()}</td>

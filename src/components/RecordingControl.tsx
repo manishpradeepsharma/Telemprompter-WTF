@@ -334,10 +334,19 @@ export default function RecordingControl({
     }
 
     const scriptTitle = localStorage.getItem('teleprompter_active_title') || 'Teleprompter Session';
+    const scriptId = localStorage.getItem('teleprompter_active_script_id') || undefined;
+    const scriptContent = localStorage.getItem('teleprompter_active_script_content') || undefined;
+    const folderId = localStorage.getItem('teleprompter_active_folder_id') || undefined;
+    const folderName = localStorage.getItem('teleprompter_active_folder_name') || undefined;
+
     const res = await api.uploadRecording({
       videoBlob: recordedBlobRef.current,
       durationSeconds: secondsRef.current,
       scriptTitle,
+      scriptId,
+      scriptContent,
+      folderId,
+      folderName,
     });
     setUploading(false);
 

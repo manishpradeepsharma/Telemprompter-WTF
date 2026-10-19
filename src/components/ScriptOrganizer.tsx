@@ -169,6 +169,20 @@ export default function ScriptOrganizer({
       setMyScripts(scriptsRes.myScripts || []);
       setSharedFolders(foldersRes.sharedFolders || []);
       setMyFolders(foldersRes.myFolders || []);
+      const all = [...(scriptsRes.sharedScripts || []), ...(scriptsRes.myScripts || [])];
+      const targetId = new URLSearchParams(window.location.search).get('id');
+      if (targetId) {
+        const found = all.find((s) => s.id === targetId);
+        if (found) {
+          handleOpenEditScript(found);
+          if (found.folder_id) setSelectedFolderId(found.folder_id);
+          if (window.history?.replaceState) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('id');
+            window.history.replaceState({}, '', url.pathname);
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to load scripts/folders:', err);
     } finally {
@@ -561,9 +575,17 @@ export default function ScriptOrganizer({
     }
   };
 
-  const handleUseInTeleprompter = (content: string) => {
-    localStorage.setItem('teleprompter_imported_script', content);
-    window.location.href = '/';
+  const handleUseInTeleprompter = (s: ScriptItem) => {
+    localStorage.setItem('teleprompter_imported_script', s.content);
+    localStorage.setItem('teleprompter_active_script_id', s.id);
+    localStorage.setItem('teleprompter_active_title', s.title);
+    localStorage.setItem('teleprompter_active_script_content', s.content);
+    localStorage.setItem('teleprompter_active_folder_id', s.folder_id || '');
+    const allF = [...sharedFolders, ...myFolders];
+    const folder = allF.find((f) => f.id === s.folder_id);
+    localStorage.setItem('teleprompter_active_folder_name', folder ? folder.name : 'Uncategorized');
+    localStorage.setItem('teleprompter_autoplay', '1');
+    window.location.href = '/?present=1';
   };
 
   const handleImportFile = (e: Event) => {
@@ -1058,8 +1080,8 @@ export default function ScriptOrganizer({
                       <button
                         type="button"
                         class="script-record-btn"
-                        title="Load into Teleprompter and start recording"
-                        onClick={() => handleUseInTeleprompter(s.content)}
+                        title="Directly launch Teleprompter and start recording"
+                        onClick={() => handleUseInTeleprompter(s)}
                       >
                         ▶ Record
                       </button>
@@ -1169,7 +1191,8 @@ export default function ScriptOrganizer({
                           <button
                             type="button"
                             class="script-record-btn script-record-btn--sm"
-                            onClick={() => handleUseInTeleprompter(s.content)}
+                            title="Directly launch Teleprompter and start recording"
+                            onClick={() => handleUseInTeleprompter(s)}
                           >
                             ▶ Record
                           </button>
@@ -1433,6 +1456,27 @@ export default function ScriptOrganizer({
                 >
                   Cancel
                 </button>
+                {scriptContent.trim() && (
+                  <button
+                    type="button"
+                    class="button button--primary"
+                    onClick={() =>
+                      handleUseInTeleprompter({
+                        id: scriptEditId || '',
+                        title: scriptTitle || 'Untitled Script',
+                        content: scriptContent,
+                        folder_id: scriptFolderId || null,
+                        created_by: '',
+                        creator_name: '',
+                        is_shared: scriptIsShared ? 1 : 0,
+                        created_at: '',
+                        updated_at: '',
+                      })
+                    }
+                  >
+                    ▶ Launch Teleprompter
+                  </button>
+                )}
                 <button type="submit" class="button button--accent" disabled={scriptSaving}>
                   {scriptSaving ? 'Saving…' : scriptEditId ? 'Update Script' : 'Save Script'}
                 </button>

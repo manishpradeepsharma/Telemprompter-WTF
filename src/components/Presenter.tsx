@@ -38,10 +38,50 @@ import RecordingControl from './RecordingControl';
 import SettingControls from './SettingControls';
 import VoiceTrackingControls from './VoiceTrackingControls';
 
+export async function requestCameraStream(): Promise<MediaStream> {
+  if (
+    typeof navigator === 'undefined' ||
+    typeof navigator.mediaDevices?.getUserMedia !== 'function'
+  ) {
+    throw new Error('media-devices-unsupported');
+  }
+
+  // 1. Mobile front camera (flexible ideal constraints)
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'user' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+      audio: false,
+    });
+  } catch (err1) {
+    console.warn('Flexible ideal camera constraints failed:', err1);
+  }
+
+  // 2. Strict facingMode: 'user' without resolution constraints
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' },
+      audio: false,
+    });
+  } catch (err2) {
+    console.warn('FacingMode user failed:', err2);
+  }
+
+  // 3. Fallback to any available video stream
+  return await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: false,
+  });
+}
+
 interface Props {
   script: string;
   preferences: PresenterPreferences;
   entryContext: EntryContext;
+  initialCameraStream?: MediaStream | null;
   onPreferencesChange: (next: PresenterPreferences, setting?: SettingName) => void;
   onExit: () => void;
 }
@@ -57,6 +97,7 @@ export default function Presenter({
   script,
   preferences,
   entryContext,
+  initialCameraStream,
   onPreferencesChange,
   onExit,
 }: Props): preact.JSX.Element {
@@ -83,26 +124,60 @@ export default function Presenter({
   const [fullscreen, setFullscreen] = useState(Boolean(document.fullscreenElement));
   const [voiceListening, setVoiceListening] = useState(false);
   const [speechActive, setSpeechActive] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(initialCameraStream ?? null);
+  const [cameraPermissionDismissed, setCameraPermissionDismissed] = useState(false);
+  const [cameraStatus, setCameraStatus] = useState<
+    'idle' | 'prompt' | 'granted' | 'denied' | 'insecure_context'
+  >(() => {
+    if (initialCameraStream) return 'granted';
+    if (
+      typeof window !== 'undefined' &&
+      window.isSecureContext === false &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      return 'insecure_context';
+    }
+    return 'prompt';
+  });
 
   useEffect(() => {
     let active = true;
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
-      navigator.mediaDevices
-        .getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        })
+    if (cameraStream) return;
+
+    if (
+      typeof window !== 'undefined' &&
+      window.isSecureContext === false &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1'
+    ) {
+      setCameraStatus('insecure_context');
+      return;
+    }
+
+    if (
+      typeof navigator !== 'undefined' &&
+      typeof navigator.mediaDevices?.getUserMedia === 'function'
+    ) {
+      requestCameraStream()
         .then((stream) => {
           if (!active) {
             stream.getTracks().forEach((track) => track.stop());
             return;
           }
           setCameraStream(stream);
+          setCameraStatus('granted');
         })
         .catch((err) => {
+          if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+            setCameraStatus('denied');
+          } else {
+            setCameraStatus('prompt');
+          }
           console.warn('Default camera preview could not be started:', err);
         });
+    } else {
+      setCameraStatus('insecure_context');
     }
 
     return () => {
@@ -118,20 +193,28 @@ export default function Presenter({
     };
   }, [cameraStream]);
 
+  const handleRequestCamera = async () => {
+    try {
+      const stream = await requestCameraStream();
+      setCameraStream(stream);
+      setCameraStatus('granted');
+    } catch (err: unknown) {
+      const error = err as { name?: string };
+      if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError') {
+        setCameraStatus('denied');
+      } else {
+        setCameraStatus('prompt');
+      }
+      console.warn('Camera permission request error:', err);
+    }
+  };
+
   const toggleCamera = async () => {
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop());
       setCameraStream(null);
     } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } },
-          audio: false,
-        });
-        setCameraStream(stream);
-      } catch (err) {
-        console.warn('Camera preview could not be started:', err);
-      }
+      await handleRequestCamera();
     }
   };
   // The highlight is applied straight to the DOM rather than held in state. It changes at word
@@ -708,6 +791,61 @@ export default function Presenter({
             muted
           />
           <div class="presenter__camera-overlay" />
+        </div>
+      )}
+
+      {!cameraStream && !cameraPermissionDismissed && (
+        <div class="presenter-camera-prompt" role="region" aria-label="Camera permission prompt">
+          <div class="presenter-camera-prompt__card">
+            <div class="presenter-camera-prompt__icon">📷</div>
+            <div class="presenter-camera-prompt__info">
+              <strong>
+                {cameraStatus === 'insecure_context'
+                  ? '🔒 Secure Connection Required for Mobile Camera'
+                  : cameraStatus === 'denied'
+                    ? '⚠️ Camera Permission Blocked'
+                    : '📷 Camera Backdrop Available'}
+              </strong>
+              <p>
+                {cameraStatus === 'insecure_context'
+                  ? 'Mobile browsers require a secure connection (HTTPS) for camera permissions over Wi-Fi/LAN.'
+                  : cameraStatus === 'denied'
+                    ? 'Camera was blocked. Tap below to re-request camera permission.'
+                    : 'Tap below to grant camera access and show your camera backdrop behind the text.'}
+              </p>
+            </div>
+            <div class="presenter-camera-prompt__actions">
+              {cameraStatus === 'insecure_context' ? (
+                <a
+                  href={
+                    typeof window !== 'undefined'
+                      ? `https://${window.location.hostname}:4323${window.location.pathname}${window.location.search}`
+                      : '#'
+                  }
+                  class="presenter-camera-prompt__btn presenter-camera-prompt__btn--primary"
+                >
+                  🔒 Switch to Secure HTTPS (:4323)
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  class="presenter-camera-prompt__btn presenter-camera-prompt__btn--primary"
+                  onClick={handleRequestCamera}
+                >
+                  {cameraStatus === 'denied'
+                    ? '🔄 Retry Camera Access'
+                    : '📷 Allow Camera Permission'}
+                </button>
+              )}
+              <button
+                type="button"
+                class="presenter-camera-prompt__btn presenter-camera-prompt__btn--dismiss"
+                onClick={() => setCameraPermissionDismissed(true)}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

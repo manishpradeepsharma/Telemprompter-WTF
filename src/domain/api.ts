@@ -36,6 +36,10 @@ export interface RecordingItem {
   duration_seconds: number;
   script_id: string | null;
   script_title: string | null;
+  script_content?: string | null;
+  folder_id?: string | null;
+  folder_name?: string | null;
+  live_script_id?: string | null;
   user_id: string;
   user_name: string;
   user_email: string;
@@ -250,8 +254,11 @@ export const api = {
   async uploadRecording(payload: {
     videoBlob: Blob;
     durationSeconds: number;
-    scriptTitle?: string;
-    scriptId?: string;
+    scriptTitle?: string | undefined;
+    scriptId?: string | undefined;
+    scriptContent?: string | undefined;
+    folderId?: string | undefined;
+    folderName?: string | undefined;
   }): Promise<{ recording?: RecordingItem; error?: string }> {
     try {
       const formData = new FormData();
@@ -260,6 +267,9 @@ export const api = {
       formData.append('durationSeconds', String(payload.durationSeconds));
       if (payload.scriptTitle) formData.append('scriptTitle', payload.scriptTitle);
       if (payload.scriptId) formData.append('scriptId', payload.scriptId);
+      if (payload.scriptContent) formData.append('scriptContent', payload.scriptContent);
+      if (payload.folderId) formData.append('folderId', payload.folderId);
+      if (payload.folderName) formData.append('folderName', payload.folderName);
 
       const res = await fetch('/api/recordings/upload', {
         method: 'POST',

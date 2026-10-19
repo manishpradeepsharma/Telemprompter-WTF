@@ -2,9 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { scryptSync, randomBytes, timingSafeEqual } from 'node:crypto';
-import { mkdirSync, existsSync, unlinkSync } from 'node:fs';
+import { mkdirSync, existsSync, unlinkSync, readFileSync } from 'node:fs';
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import https from 'node:https';
+import http from 'node:http';
+import os from 'node:os';
 import { db } from './db.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -54,6 +57,37 @@ function verifyPassword(password, storedHash) {
   const derivedKey = scryptSync(password, salt, 64);
   return timingSafeEqual(keyBuffer, derivedKey);
 }
+
+// Helper: detect local LAN IP
+function getLanIp() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name] || []) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return '192.168.1.5';
+}
+
+app.get('/api/lan-info', (_req, res) => {
+  const lanIp = getLanIp();
+  const httpPort = 4321;
+  const httpsPort = 4323;
+  const sslKeyPath = join(__dirname, '../ssl/key.pem');
+  const sslCertPath = join(__dirname, '../ssl/cert.pem');
+  const hasHttps = existsSync(sslKeyPath) && existsSync(sslCertPath);
+  res.json({
+    lanIp,
+    httpPort,
+    httpsPort,
+    hasHttps,
+    lanUrl: hasHttps ? `https://${lanIp}:${httpsPort}` : `http://${lanIp}:${httpPort}`,
+    httpUrl: `http://${lanIp}:${httpPort}`,
+    httpsUrl: `https://${lanIp}:${httpsPort}`,
+  });
+});
 
 // Helper: parse cookies from header
 function getSessionToken(req) {
@@ -544,17 +578,49 @@ app.post('/api/recordings/upload', upload.single('video'), (req, res) => {
       return res.status(400).json({ error: 'No video file provided' });
     }
 
-    const { scriptId, scriptTitle, durationSeconds } = req.body;
+    const { scriptId, scriptTitle, scriptContent, folderId, folderName, durationSeconds } =
+      req.body;
     const recordingId = randomBytes(12).toString('hex');
     const now = new Date().toISOString();
+
+    let resolvedContent = scriptContent || '';
+    let resolvedFolderId = folderId || null;
+    let resolvedFolderName = folderName || null;
+    let resolvedTitle = scriptTitle || 'Untitled Script';
+
+    if (scriptId) {
+      try {
+        const scriptRow = db
+          .prepare('SELECT title, content, folder_id FROM scripts WHERE id = ?')
+          .get(scriptId);
+        if (scriptRow) {
+          if (!resolvedContent) resolvedContent = scriptRow.content;
+          if (!resolvedFolderId) resolvedFolderId = scriptRow.folder_id;
+          if (!resolvedTitle || resolvedTitle === 'Teleprompter Session')
+            resolvedTitle = scriptRow.title;
+        }
+      } catch (err) {
+        console.warn('Could not query script row:', err);
+      }
+    }
+
+    if (resolvedFolderId && !resolvedFolderName) {
+      try {
+        const folderRow = db.prepare('SELECT name FROM folders WHERE id = ?').get(resolvedFolderId);
+        if (folderRow) resolvedFolderName = folderRow.name;
+      } catch (err) {
+        console.warn('Could not query folder row:', err);
+      }
+    }
 
     db.prepare(
       `
       INSERT INTO recordings (
         id, filename, original_name, filepath, filesize, mimetype,
-        duration_seconds, script_id, script_title, user_id, user_name, user_email, created_at
+        duration_seconds, script_id, script_title, script_content, folder_id, folder_name,
+        user_id, user_name, user_email, created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     ).run(
       recordingId,
@@ -565,7 +631,10 @@ app.post('/api/recordings/upload', upload.single('video'), (req, res) => {
       req.file.mimetype,
       parseInt(durationSeconds, 10) || 0,
       scriptId || null,
-      scriptTitle || 'Untitled Script',
+      resolvedTitle,
+      resolvedContent || null,
+      resolvedFolderId || null,
+      resolvedFolderName || 'Uncategorized',
       user.id,
       user.name,
       user.email,
@@ -578,7 +647,11 @@ app.post('/api/recordings/upload', upload.single('video'), (req, res) => {
       url: `/filestore/${req.file.filename}`,
       filesize: req.file.size,
       duration_seconds: parseInt(durationSeconds, 10) || 0,
-      script_title: scriptTitle || 'Untitled Script',
+      script_id: scriptId || null,
+      script_title: resolvedTitle,
+      script_content: resolvedContent || null,
+      folder_id: resolvedFolderId || null,
+      folder_name: resolvedFolderName || 'Uncategorized',
       created_at: now,
     });
   } catch (error) {
@@ -596,22 +669,24 @@ app.get('/api/recordings', (req, res) => {
     const user = getCurrentUser(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+    const query = `
+      SELECT 
+        r.*,
+        COALESCE(r.script_content, s.content, '') AS script_content,
+        COALESCE(r.folder_id, s.folder_id, '') AS folder_id,
+        COALESCE(r.folder_name, f.name, 'Uncategorized') AS folder_name,
+        s.id AS live_script_id
+      FROM recordings r
+      LEFT JOIN scripts s ON r.script_id = s.id
+      LEFT JOIN folders f ON COALESCE(r.folder_id, s.folder_id) = f.id
+    `;
+
     let recordings;
     if (user.role === 'admin') {
-      recordings = db
-        .prepare(
-          `
-        SELECT * FROM recordings ORDER BY created_at DESC
-      `,
-        )
-        .all();
+      recordings = db.prepare(`${query} ORDER BY r.created_at DESC`).all();
     } else {
       recordings = db
-        .prepare(
-          `
-        SELECT * FROM recordings WHERE user_id = ? ORDER BY created_at DESC
-      `,
-        )
+        .prepare(`${query} WHERE r.user_id = ? ORDER BY r.created_at DESC`)
         .all(user.id);
     }
 
@@ -654,3 +729,74 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend server running on http://0.0.0.0:${PORT} (accessible via LAN)`);
   console.log(`Filestore directory: ${filestoreDir}`);
 });
+
+// Optional HTTPS Gateway for Mobile Device Camera Permissions
+const sslKeyPath = join(__dirname, '../ssl/key.pem');
+const sslCertPath = join(__dirname, '../ssl/cert.pem');
+
+if (existsSync(sslKeyPath) && existsSync(sslCertPath)) {
+  try {
+    const httpsGateway = https.createServer(
+      {
+        key: readFileSync(sslKeyPath),
+        cert: readFileSync(sslCertPath),
+      },
+      (req, res) => {
+        // Forward to Astro dev server on 127.0.0.1:4321
+        const proxyReq = http.request(
+          {
+            hostname: '127.0.0.1',
+            port: 4321,
+            path: req.url,
+            method: req.method,
+            headers: {
+              ...req.headers,
+              'x-forwarded-proto': 'https',
+              host: req.headers.host,
+            },
+          },
+          (proxyRes) => {
+            res.writeHead(proxyRes.statusCode, proxyRes.headers);
+            proxyRes.pipe(res, { end: true });
+          },
+        );
+        proxyReq.on('error', (err) => {
+          res.writeHead(502);
+          res.end('HTTPS Mobile Gateway error: ' + err.message);
+        });
+        req.pipe(proxyReq, { end: true });
+      },
+    );
+
+    httpsGateway.on('upgrade', (req, socket) => {
+      const proxyReq = http.request({
+        hostname: '127.0.0.1',
+        port: 4321,
+        path: req.url,
+        method: req.method,
+        headers: req.headers,
+      });
+      proxyReq.on('upgrade', (proxyRes, proxySocket) => {
+        socket.write(
+          `HTTP/1.1 101 Switching Protocols\r\n` +
+            Object.entries(proxyRes.headers)
+              .map(([k, v]) => `${k}: ${v}\r\n`)
+              .join('') +
+            '\r\n',
+        );
+        proxySocket.pipe(socket);
+        socket.pipe(proxySocket);
+      });
+      proxyReq.on('error', () => {
+        socket.destroy();
+      });
+      proxyReq.end();
+    });
+
+    httpsGateway.listen(4323, '0.0.0.0', () => {
+      console.log('HTTPS Mobile Gateway listening on https://0.0.0.0:4323 (Enables Mobile Camera)');
+    });
+  } catch (err) {
+    console.warn('Could not start HTTPS Mobile Gateway:', err.message);
+  }
+}

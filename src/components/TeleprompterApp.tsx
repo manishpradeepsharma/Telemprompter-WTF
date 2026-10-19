@@ -15,7 +15,7 @@ import { SETTING_LIMITS } from '../domain/settings';
 import { compileScriptGuide } from '../domain/scriptGuide';
 import { primeBrowserSpeechInUserGesture } from '../domain/browserSpeech';
 import type { PresenterPreferences, PrivacyConsent } from '../domain/types';
-import Presenter from './Presenter';
+import Presenter, { requestCameraStream } from './Presenter';
 
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
 
@@ -46,6 +46,7 @@ export default function TeleprompterApp({
   const [hydrated, setHydrated] = useState(false);
   const [saveStatus, setSaveStatus] = useState('Saved only on this device');
   const [notice, setNotice] = useState('');
+  const [preloadedCameraStream, setPreloadedCameraStream] = useState<MediaStream | null>(null);
   const startButtonRef = useRef<HTMLButtonElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,8 +82,10 @@ export default function TeleprompterApp({
       }
     }
     const imported = localStorage.getItem('teleprompter_imported_script');
+    let activeScript = saved.script;
     if (imported) {
       setScript(imported);
+      activeScript = imported;
       localStorage.removeItem('teleprompter_imported_script');
     } else if (hasSaved) {
       setScript(saved.script);
@@ -93,6 +96,29 @@ export default function TeleprompterApp({
     }
     setPrivacyConsent(saved.privacyConsent);
     setSaveStatus(hasSaved ? 'Restored from this device' : 'Saved only on this device');
+
+    const autoPresent =
+      localStorage.getItem('teleprompter_autoplay') === '1' ||
+      new URLSearchParams(window.location.search).get('present') === '1';
+
+    if (autoPresent) {
+      localStorage.removeItem('teleprompter_autoplay');
+      if (window.history?.replaceState) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('present');
+        window.history.replaceState({}, '', url.pathname);
+      }
+      const fullText = imported || activeScript || '';
+      const firstLine = fullText.split('\n')[0] ?? '';
+      const title = firstLine
+        .replace(/^[#*\s-]+/, '')
+        .trim()
+        .slice(0, 60);
+      localStorage.setItem('teleprompter_active_title', title || 'Teleprompter Session');
+      localStorage.setItem('teleprompter_active_script_content', fullText);
+      if (restoredPreferences.voiceMode === 'smart') primeBrowserSpeechInUserGesture();
+      setPresenting(true);
+    }
     // Derived once at app start: a non-empty restored script means this session continues
     // earlier work. It is a one-off enum, never a persistent identifier. An authored embed
     // sample is new work, not a restored session.
@@ -226,7 +252,7 @@ export default function TeleprompterApp({
     }
   };
 
-  const start = () => {
+  const start = async () => {
     if (!script.trim()) return;
     const firstLine = script.split('\n')[0] ?? '';
     const title = firstLine
@@ -234,7 +260,21 @@ export default function TeleprompterApp({
       .trim()
       .slice(0, 60);
     localStorage.setItem('teleprompter_active_title', title || 'Teleprompter Session');
+    localStorage.setItem('teleprompter_active_script_content', script);
     if (preferences.voiceMode === 'smart') primeBrowserSpeechInUserGesture();
+
+    // Trigger camera permission request during the start click user gesture (crucial for mobile Safari/Chrome)
+    if (
+      typeof navigator !== 'undefined' &&
+      typeof navigator.mediaDevices?.getUserMedia === 'function'
+    ) {
+      try {
+        const stream = await requestCameraStream();
+        setPreloadedCameraStream(stream);
+      } catch {
+        // Ignored; Presenter will show permission prompt card
+      }
+    }
     setPresenting(true);
   };
 
@@ -397,6 +437,7 @@ export default function TeleprompterApp({
           script={script}
           preferences={preferences}
           entryContext={entryContextRef.current}
+          initialCameraStream={preloadedCameraStream}
           onPreferencesChange={updatePreferences}
           onExit={stopPresenting}
         />
