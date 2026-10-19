@@ -489,8 +489,43 @@ button {
 .secondary-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
-  gap: 0.2rem 0.9rem;
+  gap: 0.35rem 0.85rem;
+}
+
+.editor-library-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #ded5c4);
+  border-radius: 9999px;
+  color: var(--ink, #171713);
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.editor-library-btn:hover {
+  background: #fbf9f4;
+  border-color: var(--ink, #171713);
+  color: var(--ink, #171713);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.07);
+}
+
+.editor-library-btn__icon {
+  flex-shrink: 0;
+  color: var(--muted, #68655c);
+  transition: color 0.15s ease;
+}
+
+.editor-library-btn:hover .editor-library-btn__icon {
+  color: var(--ink, #171713);
 }
 
 .text-button {
@@ -5348,6 +5383,67 @@ kbd {
 /* ==========================================================================
    Mobile QR Connect (LAN Sharing)
    ========================================================================== */
+
+.home-hero__qr-panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.mobile-qr-inline-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #ded5c4);
+  border-radius: calc(var(--radius) + 8px);
+  padding: 1.35rem 1.45rem;
+  box-shadow: 0 16px 45px rgba(33, 29, 77, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.mobile-qr-inline-card:hover {
+  box-shadow: 0 20px 50px rgba(33, 29, 77, 0.12);
+}
+
+.mobile-qr-inline-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mobile-qr-inline-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.35rem;
+}
+
+.mobile-qr-inline-title {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  color: var(--ink, #171713);
+  line-height: 1.25;
+}
+
+.mobile-qr-camera-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+}
 
 .home-hero__mobile-actions {
   margin-top: 1.25rem;

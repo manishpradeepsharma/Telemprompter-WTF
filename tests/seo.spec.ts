@@ -53,13 +53,10 @@ test('all indexable pages expose complete unique metadata', async ({ page }) => 
   }
 });
 
-test('homepage ships exactly one high-priority hero image', async ({ page }) => {
+test('homepage ships interactive mobile QR connect panel', async ({ page }) => {
   await page.goto('/');
-  const hero = page.locator('img[fetchpriority="high"]');
-  await expect(hero).toHaveCount(1);
-  await expect(hero).toHaveAttribute('src', '/illustrations/teleprompter-hero.webp');
-  await expect(hero).toHaveAttribute('width', '1024');
-  await expect(hero).toHaveAttribute('height', '683');
+  const qrCard = page.locator('.mobile-qr-inline-card');
+  await expect(qrCard).toHaveCount(1);
 });
 
 test('JSON-LD blocks parse as valid JSON', async ({ page }) => {

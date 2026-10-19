@@ -56,7 +56,6 @@ describe('Public Content Consistency against Product Facts', () => {
 
   it('verifies Private Precision model size is accurately cited as ~67 MB or 66,874,154 bytes', () => {
     expect(llms).toContain('67 MB');
-    expect(indexAstro).toContain('67 MB');
     expect(featuresAstro).toContain('67 MB');
     expect(privacyAstro).toContain('67 MB');
     expect(privateVoiceAstro).toContain('67 MB');

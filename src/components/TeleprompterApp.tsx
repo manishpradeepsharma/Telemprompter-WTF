@@ -391,8 +391,28 @@ export default function TeleprompterApp({
             Start teleprompter <span aria-hidden="true">→</span>
           </button>
           <div class="secondary-actions">
-            <a href="/scripts" class="text-button text-button--library">
-              📚 Script Library
+            <a
+              href="/scripts"
+              class="editor-library-btn"
+              title="Open team & personal script library"
+            >
+              <svg
+                class="editor-library-btn__icon"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+                <path d="M6 6h10" />
+                <path d="M6 10h10" />
+              </svg>
+              <span>Script Library</span>
             </a>
             <input
               ref={importRef}
