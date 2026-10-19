@@ -55,6 +55,9 @@ export default function AuthNav(): preact.JSX.Element {
         <a href="/recordings" class="auth-link">
           Recordings
         </a>
+        <a href="/final-cuts" class="auth-link">
+          Final Cuts
+        </a>
         <button type="button" onClick={handleLogout} class="auth-btn-logout">
           Log out
         </button>

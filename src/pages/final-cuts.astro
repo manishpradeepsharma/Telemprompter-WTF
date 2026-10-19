@@ -1,0 +1,14 @@
+---
+import Layout from '../layouts/Layout.astro';
+import FinalCutsOrganizer from '../components/FinalCutsOrganizer';
+---
+
+<Layout
+  title="Final Cuts & Social Video Releases | teleprompter.wtf"
+  description="Manage, preview, and download edited, social media-ready videos uploaded by video editors on teleprompter.wtf."
+>
+  <div class="app-page-wrapper">
+    <h1 class="sr-only">Final Cuts & Social Video Releases</h1>
+    <FinalCutsOrganizer client:load />
+  </div>
+</Layout>

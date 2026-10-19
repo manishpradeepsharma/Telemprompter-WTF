@@ -46,6 +46,27 @@ export interface RecordingItem {
   created_at: string;
 }
 
+export interface FinalCutItem {
+  id: string;
+  title: string;
+  filename: string;
+  original_name: string;
+  filepath: string;
+  filesize: number;
+  mimetype: string;
+  duration_seconds: number;
+  folder_id: string | null;
+  folder_name: string | null;
+  script_id: string | null;
+  script_title: string | null;
+  platform_tag: string;
+  notes: string | null;
+  user_id: string;
+  user_name: string;
+  user_email?: string;
+  created_at: string;
+}
+
 export const api = {
   async getAuth(): Promise<User | null> {
     try {
@@ -297,6 +318,65 @@ export const api = {
   async deleteRecording(id: string): Promise<boolean> {
     try {
       const res = await fetch(`/api/recordings/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  async getFinalCuts(): Promise<{ finalCuts: FinalCutItem[]; role: 'user' | 'admin' }> {
+    try {
+      const res = await fetch('/api/final-cuts', { credentials: 'include' });
+      if (!res.ok) return { finalCuts: [], role: 'user' };
+      return await res.json();
+    } catch {
+      return { finalCuts: [], role: 'user' };
+    }
+  },
+
+  async uploadFinalCut(payload: {
+    videoFile: File;
+    title: string;
+    folderId?: string | undefined;
+    folderName?: string | undefined;
+    scriptId?: string | undefined;
+    scriptTitle?: string | undefined;
+    platformTag?: string | undefined;
+    notes?: string | undefined;
+    durationSeconds?: number | undefined;
+  }): Promise<{ finalCut?: FinalCutItem; error?: string }> {
+    try {
+      const formData = new FormData();
+      formData.append('video', payload.videoFile);
+      formData.append('title', payload.title);
+      if (payload.folderId) formData.append('folderId', payload.folderId);
+      if (payload.folderName) formData.append('folderName', payload.folderName);
+      if (payload.scriptId) formData.append('scriptId', payload.scriptId);
+      if (payload.scriptTitle) formData.append('scriptTitle', payload.scriptTitle);
+      if (payload.platformTag) formData.append('platformTag', payload.platformTag);
+      if (payload.notes) formData.append('notes', payload.notes);
+      if (payload.durationSeconds)
+        formData.append('durationSeconds', String(payload.durationSeconds));
+
+      const res = await fetch('/api/final-cuts/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Upload failed' };
+      return { finalCut: data };
+    } catch {
+      return { error: 'Network error during upload' };
+    }
+  },
+
+  async deleteFinalCut(id: string): Promise<boolean> {
+    try {
+      const res = await fetch(`/api/final-cuts/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });

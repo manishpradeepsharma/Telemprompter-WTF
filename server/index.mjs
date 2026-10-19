@@ -730,6 +730,153 @@ app.delete('/api/recordings/:id', (req, res) => {
   }
 });
 
+// ---------------- FINAL CUTS (EDITED VIDEOS) ROUTES ----------------
+
+// Upload edited final cut
+app.post('/api/final-cuts/upload', upload.single('video'), (req, res) => {
+  try {
+    const user = getCurrentUser(req);
+    if (!user) {
+      if (req.file) unlinkSync(req.file.path);
+      return res.status(401).json({ error: 'Please log in to upload final cuts' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No video file provided' });
+    }
+
+    const {
+      title,
+      folderId,
+      folderName,
+      scriptId,
+      scriptTitle,
+      platformTag,
+      notes,
+      durationSeconds,
+    } = req.body;
+
+    const cutId = randomBytes(12).toString('hex');
+    const now = new Date().toISOString();
+    const resolvedTitle = (title && title.trim()) || req.file.originalname.replace(/\.[^/.]+$/, '');
+    let resolvedFolderName = folderName || 'Uncategorized';
+
+    if (folderId && (!folderName || folderName === 'Uncategorized')) {
+      try {
+        const folderRow = db.prepare('SELECT name FROM folders WHERE id = ?').get(folderId);
+        if (folderRow) resolvedFolderName = folderRow.name;
+      } catch (err) {
+        console.warn('Could not query folder row:', err);
+      }
+    }
+
+    db.prepare(
+      `
+      INSERT INTO final_cuts (
+        id, title, filename, original_name, filepath, filesize, mimetype,
+        duration_seconds, folder_id, folder_name, script_id, script_title,
+        platform_tag, notes, user_id, user_name, user_email, created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+    ).run(
+      cutId,
+      resolvedTitle,
+      req.file.filename,
+      req.file.originalname,
+      `/filestore/${req.file.filename}`,
+      req.file.size,
+      req.file.mimetype,
+      parseInt(durationSeconds, 10) || 0,
+      folderId || null,
+      resolvedFolderName,
+      scriptId || null,
+      scriptTitle || null,
+      platformTag || 'all',
+      notes || '',
+      user.id,
+      user.name,
+      user.email,
+      now,
+    );
+
+    return res.status(201).json({
+      id: cutId,
+      title: resolvedTitle,
+      filename: req.file.filename,
+      url: `/filestore/${req.file.filename}`,
+      filesize: req.file.size,
+      mimetype: req.file.mimetype,
+      duration_seconds: parseInt(durationSeconds, 10) || 0,
+      folder_id: folderId || null,
+      folder_name: resolvedFolderName,
+      script_id: scriptId || null,
+      script_title: scriptTitle || null,
+      platform_tag: platformTag || 'all',
+      notes: notes || '',
+      user_id: user.id,
+      user_name: user.name,
+      created_at: now,
+    });
+  } catch (error) {
+    console.error('Upload final cut error:', error);
+    if (req.file && existsSync(req.file.path)) {
+      unlinkSync(req.file.path);
+    }
+    return res.status(500).json({ error: 'Failed to upload final cut' });
+  }
+});
+
+// Get all final cuts (team library)
+app.get('/api/final-cuts', (req, res) => {
+  try {
+    const user = getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const query = `
+      SELECT 
+        fc.*,
+        COALESCE(fc.folder_name, f.name, 'Uncategorized') AS folder_name
+      FROM final_cuts fc
+      LEFT JOIN folders f ON fc.folder_id = f.id
+      ORDER BY fc.created_at DESC
+    `;
+
+    const finalCuts = db.prepare(query).all();
+    return res.json({ finalCuts, role: user.role });
+  } catch (error) {
+    console.error('Fetch final cuts error:', error);
+    return res.status(500).json({ error: 'Failed to load final cuts' });
+  }
+});
+
+// Delete final cut
+app.delete('/api/final-cuts/:id', (req, res) => {
+  try {
+    const user = getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { id } = req.params;
+    const cut = db.prepare('SELECT * FROM final_cuts WHERE id = ?').get(id);
+    if (!cut) return res.status(404).json({ error: 'Final cut not found' });
+
+    if (user.role !== 'admin' && cut.user_id !== user.id) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    const diskPath = join(filestoreDir, cut.filename);
+    if (existsSync(diskPath)) {
+      unlinkSync(diskPath);
+    }
+
+    db.prepare('DELETE FROM final_cuts WHERE id = ?').run(id);
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete final cut error:', error);
+    return res.status(500).json({ error: 'Failed to delete final cut' });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend server running on http://0.0.0.0:${PORT} (accessible via LAN)`);
   console.log(`Filestore directory: ${filestoreDir}`);

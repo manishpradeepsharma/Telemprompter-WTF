@@ -73,6 +73,28 @@ db.exec(`
     created_at TEXT NOT NULL,
     FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS final_cuts (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    filepath TEXT NOT NULL,
+    filesize INTEGER NOT NULL,
+    mimetype TEXT NOT NULL,
+    duration_seconds INTEGER DEFAULT 0,
+    folder_id TEXT,
+    folder_name TEXT,
+    script_id TEXT,
+    script_title TEXT,
+    platform_tag TEXT DEFAULT 'all',
+    notes TEXT,
+    user_id TEXT NOT NULL,
+    user_name TEXT NOT NULL,
+    user_email TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 `);
 
 // Migration: add folder_id to scripts if not present
