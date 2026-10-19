@@ -178,11 +178,13 @@ docker run --read-only --tmpfs /tmp:uid=101,gid=101 --tmpfs /var/cache/nginx:uid
 curl --fail http://127.0.0.1:8080/health
 ```
 
-Or:
+Or using Docker Compose:
 
 ```bash
-docker compose up --build -d
+docker compose up -d --build
 ```
+
+For full Windows 11 Server setup, LAN deployment, persistent storage configuration, and troubleshooting, see the comprehensive [DOCKER_INSTALL_README.md](DOCKER_INSTALL_README.md).
 
 TLS, the HTTP-to-HTTPS redirect, and the apex-to-`www` redirect belong at the deployment edge. See [docs/deployment.md](docs/deployment.md) and [docs/coolify-deployment.md](docs/coolify-deployment.md).
 

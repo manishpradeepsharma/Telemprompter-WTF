@@ -1,0 +1,23 @@
+FROM node:24-alpine AS runtime
+
+WORKDIR /app
+
+# Install production dependencies
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+# Copy server application
+COPY server/ ./server/
+
+# Ensure data and filestore directories exist
+RUN mkdir -p /app/data /app/filestore
+
+EXPOSE 4322 4323
+
+ENV NODE_ENV=production
+ENV PORT=4322
+
+HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:4322/api/health >/dev/null || exit 1
+
+CMD ["node", "server/index.mjs"]

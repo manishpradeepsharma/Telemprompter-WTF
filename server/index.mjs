@@ -43,6 +43,11 @@ app.use(express.json());
 // Serve filestore files directly
 app.use('/filestore', express.static(filestoreDir));
 
+// Health check endpoint for Docker & monitoring
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Helper: password hashing & verification
 function hashPassword(password) {
   const salt = randomBytes(16).toString('hex');
@@ -733,6 +738,8 @@ app.listen(PORT, '0.0.0.0', () => {
 // Optional HTTPS Gateway for Mobile Device Camera Permissions
 const sslKeyPath = join(__dirname, '../ssl/key.pem');
 const sslCertPath = join(__dirname, '../ssl/cert.pem');
+const WEB_HOST = process.env.WEB_HOST || '127.0.0.1';
+const WEB_PORT = process.env.WEB_PORT ? parseInt(process.env.WEB_PORT, 10) : 4321;
 
 if (existsSync(sslKeyPath) && existsSync(sslCertPath)) {
   try {
@@ -742,11 +749,11 @@ if (existsSync(sslKeyPath) && existsSync(sslCertPath)) {
         cert: readFileSync(sslCertPath),
       },
       (req, res) => {
-        // Forward to Astro dev server on 127.0.0.1:4321
+        // Forward to frontend server
         const proxyReq = http.request(
           {
-            hostname: '127.0.0.1',
-            port: 4321,
+            hostname: WEB_HOST,
+            port: WEB_PORT,
             path: req.url,
             method: req.method,
             headers: {
@@ -770,8 +777,8 @@ if (existsSync(sslKeyPath) && existsSync(sslCertPath)) {
 
     httpsGateway.on('upgrade', (req, socket) => {
       const proxyReq = http.request({
-        hostname: '127.0.0.1',
-        port: 4321,
+        hostname: WEB_HOST,
+        port: WEB_PORT,
         path: req.url,
         method: req.method,
         headers: req.headers,

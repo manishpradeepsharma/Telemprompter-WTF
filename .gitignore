@@ -16,3 +16,4 @@ skills-lock.json
 .claude/skills/
 data/
 filestore/
+ssl/

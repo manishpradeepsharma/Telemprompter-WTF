@@ -11,3 +11,6 @@ test-results
 .env
 public/models/runtime
 public/models/whisper-tiny-v1
+data
+filestore
+ssl

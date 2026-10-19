@@ -1,16 +1,48 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: teleprompter-api
+    restart: unless-stopped
+    ports:
+      - '4322:4322'
+      - '4323:4323'
+    environment:
+      - PORT=4322
+      - NODE_ENV=production
+      - WEB_HOST=teleprompter
+      - WEB_PORT=8080
+    volumes:
+      - ./data:/app/data
+      - ./filestore:/app/filestore
+      - ./ssl:/app/ssl:ro
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4322/api/health']
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
   teleprompter:
     build:
       context: .
+      dockerfile: Dockerfile
       args:
         PUBLIC_GA_MEASUREMENT_ID: ${PUBLIC_GA_MEASUREMENT_ID:-}
-        PUBLIC_UMAMI_WEBSITE_ID: ${PUBLIC_UMAMI_WEBSITE_ID:-c5952a2b-b192-46fe-8a3d-04ad673ffd6d}
-        PUBLIC_UMAMI_SCRIPT_URL: ${PUBLIC_UMAMI_SCRIPT_URL:-https://analytics.sabya.pm/script.js}
+        PUBLIC_UMAMI_WEBSITE_ID: ${PUBLIC_UMAMI_WEBSITE_ID:-}
+        PUBLIC_UMAMI_SCRIPT_URL: ${PUBLIC_UMAMI_SCRIPT_URL:-}
         PUBLIC_GOOGLE_SITE_VERIFICATION: ${PUBLIC_GOOGLE_SITE_VERIFICATION:-}
         PUBLIC_BING_SITE_VERIFICATION: ${PUBLIC_BING_SITE_VERIFICATION:-}
-    ports:
-      - '8080:8080'
+    container_name: teleprompter-web
     restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '80:8080'
+      - '4321:8080'
+      - '8080:8080'
     read_only: true
     tmpfs:
       - /tmp:uid=101,gid=101
