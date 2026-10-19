@@ -14,3 +14,5 @@ public/models/whisper-tiny-v1/
 .agents/
 skills-lock.json
 .claude/skills/
+data/
+filestore/

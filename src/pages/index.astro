@@ -1,5 +1,4 @@
 ---
-import PrivacyChoices from '../components/PrivacyChoices';
 import TeleprompterApp from '../components/TeleprompterApp';
 import Layout from '../layouts/Layout.astro';
 
@@ -49,17 +48,17 @@ const schema = [
   <section class="home-hero">
     <div class="home-hero__split">
       <div class="home-hero__copy">
-        <p class="eyebrow">Free · No signup · Private by design</p>
+        <p class="eyebrow">Free · Team Scripts · Secure Storage</p>
         <h1>Free online teleprompter that follows your pace</h1>
         <p class="home-hero__lead">
           Paste your script and start. Smart Pace follows your speaking rhythm locally by default,
           while reliable manual scrolling is always available.
         </p>
         <ul class="home-hero__promises">
-          <li>No login</li>
+          <li>Login & Cloud Sync</li>
           <li>No ads</li>
           <li>No watermark</li>
-          <li>Scripts stay on your device</li>
+          <li>Server storage & filestore</li>
         </ul>
       </div>
       <figure class="home-hero__art">
@@ -75,7 +74,6 @@ const schema = [
       </figure>
     </div>
     <TeleprompterApp client:load />
-    <PrivacyChoices client:idle />
   </section>
 
   <section class="home-content section-wrap">

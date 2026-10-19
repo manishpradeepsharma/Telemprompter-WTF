@@ -1,0 +1,14 @@
+---
+import Layout from '../layouts/Layout.astro';
+import UserScripts from '../components/UserScripts';
+---
+
+<Layout
+  title="Script Library | teleprompter.wtf"
+  description="Manage and create your scripts or record using scripts shared by your team administrator."
+>
+  <div class="app-page-wrapper">
+    <h1 class="sr-only">Script Library</h1>
+    <UserScripts client:load />
+  </div>
+</Layout>

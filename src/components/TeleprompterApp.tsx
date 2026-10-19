@@ -80,7 +80,11 @@ export default function TeleprompterApp({
         // Storage can be unavailable; the in-memory default still prefers Smart Pace.
       }
     }
-    if (hasSaved) {
+    const imported = localStorage.getItem('teleprompter_imported_script');
+    if (imported) {
+      setScript(imported);
+      localStorage.removeItem('teleprompter_imported_script');
+    } else if (hasSaved) {
       setScript(saved.script);
       setPreferences(restoredPreferences);
     } else if (!embedded) {
@@ -224,6 +228,12 @@ export default function TeleprompterApp({
 
   const start = () => {
     if (!script.trim()) return;
+    const firstLine = script.split('\n')[0] ?? '';
+    const title = firstLine
+      .replace(/^#+\s*/, '')
+      .trim()
+      .slice(0, 60);
+    localStorage.setItem('teleprompter_active_title', title || 'Teleprompter Session');
     if (preferences.voiceMode === 'smart') primeBrowserSpeechInUserGesture();
     setPresenting(true);
   };
@@ -341,6 +351,9 @@ export default function TeleprompterApp({
             Start teleprompter <span aria-hidden="true">→</span>
           </button>
           <div class="secondary-actions">
+            <a href="/scripts" class="text-button text-button--library">
+              📚 Script Library
+            </a>
             <input
               ref={importRef}
               class="sr-only"

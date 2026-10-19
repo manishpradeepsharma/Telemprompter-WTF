@@ -1,0 +1,14 @@
+---
+import Layout from '../layouts/Layout.astro';
+import UserRecordings from '../components/UserRecordings';
+---
+
+<Layout
+  title="My Recordings | teleprompter.wtf"
+  description="Manage and play video recordings saved to the server filestore on teleprompter.wtf."
+>
+  <div class="app-page-wrapper">
+    <h1 class="sr-only">My Saved Recordings</h1>
+    <UserRecordings client:load />
+  </div>
+</Layout>

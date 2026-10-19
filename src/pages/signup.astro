@@ -1,0 +1,13 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SignupForm from '../components/SignupForm';
+---
+
+<Layout
+  title="Sign up | teleprompter.wtf"
+  description="Create an account on teleprompter.wtf to upload and manage teleprompter scripts and video recordings."
+>
+  <div class="auth-page-container">
+    <SignupForm client:load />
+  </div>
+</Layout>

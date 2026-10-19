@@ -56,7 +56,11 @@ for (const file of htmlFiles) {
   const description = html.match(/<meta name="description" content="([^"]+)"/)?.[1]?.trim();
   if (!title) failures.push(`${page}: missing title`);
   if (!description) failures.push(`${page}: missing meta description`);
-  if (!/<link rel="canonical" href="https:\/\/www\.teleprompter\.wtf\//.test(html)) {
+  if (
+    !/<link rel="canonical" href="https:\/\/(teleprompter\.sharmacomputers\.net|www\.teleprompter\.wtf)\//.test(
+      html,
+    )
+  ) {
     failures.push(`${page}: missing canonical`);
   }
   if (!/<h1(?:\s|>)/.test(html)) failures.push(`${page}: missing H1`);

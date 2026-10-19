@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { analytics, durationBucket } from '../domain/analytics';
 import { detectBrowserCapabilities } from '../domain/capabilities';
+import { api } from '../domain/api';
 
 type RecordingMode = 'screen' | 'camera';
 
@@ -23,28 +24,39 @@ const formatTimer = (seconds: number): string => {
 };
 
 interface RecordingControlProps {
+  cameraStream?: MediaStream | null;
   onCameraStreamChange?: (stream: MediaStream | null) => void;
+  onRecordingStart?: () => void;
 }
 
 export default function RecordingControl({
+  cameraStream,
   onCameraStreamChange,
+  onRecordingStart,
 }: RecordingControlProps = {}): preact.JSX.Element | null {
   const capabilities = useRef(detectBrowserCapabilities()).current;
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<RecordingMode>(capabilities.camera ? 'camera' : 'screen');
   const [includeMic, setIncludeMic] = useState(true);
   const [recording, setRecording] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [seconds, setSeconds] = useState(0);
   const [previewUrl, setPreviewUrl] = useState('');
   const [mimeType, setMimeType] = useState('');
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const triggerRef = useRef<HTMLButtonElement>(null);
   const doneRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamsRef = useRef<MediaStream[]>([]);
   const chunksRef = useRef<Blob[]>([]);
+  const recordedBlobRef = useRef<Blob | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownCancelRef = useRef<((reason?: unknown) => void) | null>(null);
   const secondsRef = useRef(0);
   const captureFailedRef = useRef(false);
 
@@ -57,20 +69,51 @@ export default function RecordingControl({
 
   useEffect(
     () => () => {
+      if (countdownTimerRef.current) {
+        clearTimeout(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
       cleanupCapture();
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     },
     [previewUrl],
   );
 
+  const cancelCountdown = () => {
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    if (countdownCancelRef.current) {
+      countdownCancelRef.current('cancelled');
+      countdownCancelRef.current = null;
+    }
+    setCountdown(null);
+    cleanupCapture();
+  };
+
+  useEffect(() => {
+    if (countdown === null) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        cancelCountdown();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [countdown]);
+
   if (!available) return null;
 
   const cleanupCapture = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
-    streamsRef.current.forEach((stream) => stream.getTracks().forEach((track) => track.stop()));
+    streamsRef.current.forEach((stream) => {
+      if (stream !== cameraStream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    });
     streamsRef.current = [];
-    onCameraStreamChange?.(null);
   };
 
   const finish = () => {
@@ -107,6 +150,28 @@ export default function RecordingControl({
     }
   };
 
+  const playTickSound = (frequency = 600) => {
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } catch {
+      // Audio context may be blocked by autoplay policies
+    }
+  };
+
   const start = async () => {
     setMessage('');
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -118,19 +183,64 @@ export default function RecordingControl({
       return;
     }
     try {
-      const primary =
-        mode === 'screen'
-          ? await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-          : await navigator.mediaDevices.getUserMedia({ video: true, audio: includeMic });
-      streamsRef.current = [primary];
-      const output = new MediaStream(primary.getTracks());
-      if (mode === 'screen' && includeMic) {
-        const microphone = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-        streamsRef.current.push(microphone);
-        microphone.getAudioTracks().forEach((track) => output.addTrack(track));
+      let primary: MediaStream;
+      const extraStreams: MediaStream[] = [];
+      const outputTracks: MediaStreamTrack[] = [];
+
+      if (mode === 'camera') {
+        const hasLiveCamera =
+          cameraStream &&
+          cameraStream.active &&
+          cameraStream.getVideoTracks().some((track) => track.readyState === 'live');
+
+        if (hasLiveCamera) {
+          primary = cameraStream;
+        } else {
+          primary = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: false,
+          });
+          onCameraStreamChange?.(primary);
+        }
+
+        outputTracks.push(...primary.getVideoTracks());
+
+        if (includeMic) {
+          const microphone = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true },
+          });
+          extraStreams.push(microphone);
+          outputTracks.push(...microphone.getAudioTracks());
+        }
+      } else {
+        primary = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+        outputTracks.push(...primary.getTracks());
+
+        if (includeMic) {
+          const microphone = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true },
+          });
+          extraStreams.push(microphone);
+          outputTracks.push(...microphone.getAudioTracks());
+        }
       }
+
+      streamsRef.current = [primary, ...extraStreams];
+      const output = new MediaStream(outputTracks);
+
+      setOpen(false);
+
+      // Visual and auditory 3, 2, 1 Countdown
+      for (const step of [3, 2, 1]) {
+        setCountdown(step);
+        playTickSound(step === 1 ? 880 : 587.33);
+        await new Promise<void>((resolve, reject) => {
+          countdownTimerRef.current = setTimeout(resolve, 1000);
+          countdownCancelRef.current = reject;
+        });
+      }
+      setCountdown(null);
+
       const recorder = new MediaRecorder(output, { mimeType: selectedMimeType });
       chunksRef.current = [];
       captureFailedRef.current = false;
@@ -147,13 +257,14 @@ export default function RecordingControl({
         const blob = new Blob(chunksRef.current, { type: selectedMimeType });
         chunksRef.current = [];
         if (blob.size) {
+          recordedBlobRef.current = blob;
           setPreviewUrl(URL.createObjectURL(blob));
+          setUploadSuccess(false);
+          setUploadError('');
           setOpen(true);
         }
         setRecording(false);
         cleanupCapture();
-        // Only a genuine stop (user or normal end of capture) counts as a completion;
-        // capture errors are reported through onerror instead.
         if (!captureFailedRef.current) {
           analytics.track('finished_recording', {
             recording_type: mode,
@@ -170,20 +281,23 @@ export default function RecordingControl({
       setSeconds(0);
       secondsRef.current = 0;
       setRecording(true);
-      setOpen(false);
-      if (mode === 'camera') {
-        onCameraStreamChange?.(primary);
-      }
       timerRef.current = setInterval(() => {
         secondsRef.current += 1;
         setSeconds(secondsRef.current);
       }, 1000);
+      onRecordingStart?.();
       analytics.track('started_recording', {
         recording_type: mode,
         microphone_included: includeMic,
       });
     } catch (error) {
+      if (countdownTimerRef.current) {
+        clearTimeout(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
+      setCountdown(null);
       cleanupCapture();
+      if (error === 'cancelled') return;
       const cancelled = error instanceof DOMException && error.name === 'NotAllowedError';
       analytics.track('recording_start_failed', {
         reason: cancelled ? 'permission_blocked' : 'unavailable',
@@ -206,11 +320,40 @@ export default function RecordingControl({
     analytics.track('saved_recording', { recording_type: mode });
   };
 
+  const uploadToServer = async () => {
+    if (!recordedBlobRef.current) return;
+    setUploading(true);
+    setUploadError('');
+    setUploadSuccess(false);
+
+    const user = await api.getAuth();
+    if (!user) {
+      setUploading(false);
+      setUploadError('Please log in first to upload your recording to the server.');
+      return;
+    }
+
+    const scriptTitle = localStorage.getItem('teleprompter_active_title') || 'Teleprompter Session';
+    const res = await api.uploadRecording({
+      videoBlob: recordedBlobRef.current,
+      durationSeconds: secondsRef.current,
+      scriptTitle,
+    });
+    setUploading(false);
+
+    if (res.error) {
+      setUploadError(res.error);
+    } else {
+      setUploadSuccess(true);
+    }
+  };
+
   return (
     <>
       <button
         ref={triggerRef}
         class={`control-button ${recording ? 'control-button--recording' : ''}`}
+        disabled={countdown !== null}
         onClick={() => {
           if (recording) {
             finish();
@@ -219,10 +362,23 @@ export default function RecordingControl({
             setOpen(true);
           }
         }}
-        aria-label={recording ? 'Stop and preview' : 'Record'}
-        title={recording ? 'Stop recording and preview' : 'Record'}
+        aria-label={
+          countdown !== null ? 'Starting recording...' : recording ? 'Stop and preview' : 'Record'
+        }
+        title={
+          countdown !== null
+            ? 'Starting recording...'
+            : recording
+              ? 'Stop recording and preview'
+              : 'Record'
+        }
       >
-        {recording ? (
+        {countdown !== null ? (
+          <>
+            <span class="recording-pulse-dot" aria-hidden="true" />
+            <span>Starting ({countdown})...</span>
+          </>
+        ) : recording ? (
           <>
             <span class="recording-pulse-dot" aria-hidden="true" />
             <span>Stop and preview</span>
@@ -321,22 +477,54 @@ export default function RecordingControl({
             {previewUrl && !recording && (
               <div class="record-preview">
                 <video controls src={previewUrl} />
-                <div>
+                <div class="record-preview-actions">
                   <button class="button button--primary" onClick={download}>
                     Save recording
+                  </button>
+                  <button
+                    class="button button--upload"
+                    onClick={uploadToServer}
+                    disabled={uploading || uploadSuccess}
+                  >
+                    {uploading
+                      ? 'Uploading to Server…'
+                      : uploadSuccess
+                        ? '✓ Uploaded to Server'
+                        : '☁ Upload to Server'}
                   </button>
                   <button
                     class="button button--quiet"
                     onClick={() => {
                       URL.revokeObjectURL(previewUrl);
                       setPreviewUrl('');
+                      recordedBlobRef.current = null;
+                      setUploadSuccess(false);
+                      setUploadError('');
                       analytics.track('discarded_recording', { recording_type: mode });
                     }}
                   >
                     Discard
                   </button>
                 </div>
-                <p>{mimeType.includes('mp4') ? 'MP4' : 'WebM'} file. Nothing was uploaded.</p>
+                {uploadError && (
+                  <p class="record-upload-msg record-upload-msg--error">
+                    {uploadError}{' '}
+                    {uploadError.includes('log in') && (
+                      <a href="/login" target="_blank" rel="noopener noreferrer">
+                        Log in here
+                      </a>
+                    )}
+                  </p>
+                )}
+                {uploadSuccess && (
+                  <p class="record-upload-msg record-upload-msg--success">
+                    Recording saved to server filestore!{' '}
+                    <a href="/recordings" target="_blank" rel="noopener noreferrer">
+                      View in My Recordings
+                    </a>
+                  </p>
+                )}
+                <p>{mimeType.includes('mp4') ? 'MP4' : 'WebM'} video format.</p>
               </div>
             )}
             <p class="record-privacy">Recording stays on this device. Nothing is uploaded.</p>
@@ -346,6 +534,24 @@ export default function RecordingControl({
               </p>
             )}
           </section>
+        </div>
+      )}
+      {countdown !== null && (
+        <div
+          class="recording-countdown-overlay"
+          aria-live="assertive"
+          role="alert"
+          onClick={cancelCountdown}
+        >
+          <div class="recording-countdown-card" onClick={(event) => event.stopPropagation()}>
+            <span class="recording-countdown-number" key={countdown}>
+              {countdown}
+            </span>
+            <span class="recording-countdown-label">Get Ready</span>
+            <button type="button" class="recording-countdown-cancel" onClick={cancelCountdown}>
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </>

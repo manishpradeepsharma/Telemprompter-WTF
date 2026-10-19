@@ -84,6 +84,56 @@ export default function Presenter({
   const [voiceListening, setVoiceListening] = useState(false);
   const [speechActive, setSpeechActive] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false,
+        })
+        .then((stream) => {
+          if (!active) {
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+          setCameraStream(stream);
+        })
+        .catch((err) => {
+          console.warn('Default camera preview could not be started:', err);
+        });
+    }
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [cameraStream]);
+
+  const toggleCamera = async () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false,
+        });
+        setCameraStream(stream);
+      } catch (err) {
+        console.warn('Camera preview could not be started:', err);
+      }
+    }
+  };
   // The highlight is applied straight to the DOM rather than held in state. It changes at word
   // rate while the scroll updates every frame, and rendering it through Preact re-diffed every
   // word span in the script on each frame.
@@ -518,6 +568,10 @@ export default function Presenter({
         voice_mode: voiceModeParam(preferences.voiceMode),
       });
     }
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    }
     onExit();
   };
 
@@ -742,9 +796,7 @@ export default function Presenter({
       </div>
 
       <header class="presenter__topbar">
-        <div class="presenter__brand">
-          teleprompter<span>.wtf</span>
-        </div>
+        <div class="presenter__brand">teleprompter</div>
         <div class="presenter__readout" aria-live="polite">
           <span>{Math.round(progress * 100)}%</span>
           <span>about {formatDuration(remaining)} left</span>
@@ -794,7 +846,21 @@ export default function Presenter({
           onAlignment={applyAlignment}
           onVoiceActivity={handleVoiceActivity}
         />
-        <RecordingControl onCameraStreamChange={setCameraStream} />
+        <RecordingControl
+          cameraStream={cameraStream}
+          onCameraStreamChange={setCameraStream}
+          onRecordingStart={() => {
+            if (!playing) setPlaying(true);
+          }}
+        />
+        <button
+          class={`control-button ${cameraStream ? 'control-button--active' : ''}`}
+          onClick={() => void toggleCamera()}
+          title={cameraStream ? 'Turn off camera backdrop' : 'Turn on camera backdrop'}
+          aria-label={cameraStream ? 'Turn off camera' : 'Turn on camera'}
+        >
+          {cameraStream ? 'Camera on' : 'Camera off'}
+        </button>
         <PictureInPictureControl
           script={displayScript}
           progress={progress}

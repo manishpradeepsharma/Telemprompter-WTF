@@ -1,0 +1,13 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LoginForm from '../components/LoginForm';
+---
+
+<Layout
+  title="Log in | teleprompter.wtf"
+  description="Log in to access your shared scripts, personal drafts, and server recordings on teleprompter.wtf."
+>
+  <div class="auth-page-container">
+    <LoginForm client:load />
+  </div>
+</Layout>

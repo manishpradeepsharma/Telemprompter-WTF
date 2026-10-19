@@ -1,0 +1,14 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AdminPanel from '../components/AdminPanel';
+---
+
+<Layout
+  title="Admin Control Center | teleprompter.wtf"
+  description="Manage shared scripts for recording users and administer recording files stored on the server."
+>
+  <div class="app-page-wrapper">
+    <h1 class="sr-only">Admin Control Center</h1>
+    <AdminPanel client:load />
+  </div>
+</Layout>

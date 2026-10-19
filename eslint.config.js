@@ -31,7 +31,7 @@ export default defineConfig(
     rules: { '@typescript-eslint/triple-slash-reference': 'off' },
   },
   {
-    files: ['scripts/**/*.mjs'],
+    files: ['scripts/**/*.mjs', 'server/**/*.mjs'],
     languageOptions: {
       globals: {
         Buffer: 'readonly',
